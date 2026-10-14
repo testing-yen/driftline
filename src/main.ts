@@ -1,0 +1,126 @@
+import './style.css';
+import { Game } from './game/game.js';
+import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
+import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
+import type { TiltInput } from './input/TiltInput.js';
+import { registerServiceWorker } from './pwa.js';
+
+const canvas = document.getElementById('game') as HTMLCanvasElement;
+const ui = document.getElementById('ui') as HTMLDivElement;
+
+const isTouchDevice =
+  'ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0;
+
+let game: Game | null = null;
+let wakeLock: { release(): Promise<void> } | null = null;
+
+async function requestWakeLock(): Promise<void> {
+  try {
+    const nav = navigator as Navigator & {
+      wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> };
+    };
+    if (nav.wakeLock) {
+      wakeLock = await nav.wakeLock.request('screen');
+    }
+  } catch {
+    // Wake lock is best-effort; the game works without it.
+  }
+}
+
+function showMenu(input: TiltInput): void {
+  ui.innerHTML = '';
+  const panel = document.createElement('div');
+  panel.className = 'panel';
+
+  const title = document.createElement('h1');
+  title.textContent = 'DRIFTLINE';
+  const sub = document.createElement('p');
+  sub.textContent =
+    'Tilt to carve downhill. Thread the gates, dodge pines and rocks — and don’t let the shadow beast catch you.';
+
+  const controls = document.createElement('p');
+  controls.textContent = input.needsUserGesture
+    ? 'Mount the phone in landscape, hold the board level, then tap Start. Tip: use “Re-center” any time your neutral drifts.'
+    : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
+
+  const startBtn = document.createElement('button');
+  startBtn.className = 'btn';
+  startBtn.textContent = input.needsUserGesture ? 'Enable motion & start' : 'Start run';
+
+  const errLine = document.createElement('p');
+  errLine.className = 'err';
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    errLine.textContent = '';
+    try {
+      // Must run inside the tap gesture on iOS.
+      await input.start();
+      input.calibrate();
+      await requestWakeLock();
+      startGame(input);
+    } catch (err) {
+      errLine.textContent = err instanceof Error ? err.message : String(err);
+      startBtn.disabled = false;
+    }
+  });
+
+  panel.append(title, sub, controls, startBtn, errLine);
+
+  if (input.needsUserGesture) {
+    const kbBtn = document.createElement('button');
+    kbBtn.className = 'btn secondary';
+    kbBtn.textContent = 'Use touch-drag instead';
+    kbBtn.addEventListener('click', () => {
+      const kb = new KeyboardTiltInput();
+      kb.attach(canvas);
+      kb.start();
+      showMenu(kb);
+    });
+    panel.append(kbBtn);
+  }
+
+  ui.append(panel);
+}
+
+function startGame(input: TiltInput): void {
+  ui.innerHTML = '';
+  game = new Game(canvas, input);
+  game.onGameOverCallback(() => {
+    // Renderer already draws the game-over overlay; a tap restarts.
+    const restart = () => {
+      canvas.removeEventListener('pointerdown', restart);
+      startGame(input);
+    };
+    canvas.addEventListener('pointerdown', restart);
+  });
+  game.start();
+}
+
+function boot(): void {
+  registerServiceWorker();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      game?.stop();
+      void wakeLock?.release().catch(() => undefined);
+      wakeLock = null;
+    } else if (game && game.phase === 'playing') {
+      void requestWakeLock();
+      game.start();
+    }
+  });
+
+  let input: TiltInput;
+  if (isTouchDevice) {
+    input = new DeviceMotionTiltInput();
+  } else {
+    const kb = new KeyboardTiltInput();
+    kb.attach(canvas);
+    kb.start();
+    input = kb;
+  }
+  showMenu(input);
+}
+
+boot();

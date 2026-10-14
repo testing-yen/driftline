@@ -1,0 +1,87 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0e1a2b;
+  font-family: system-ui, -apple-system, sans-serif;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#ui .panel {
+  pointer-events: auto;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(14, 26, 43, 0.92);
+  color: #fff;
+  border-radius: 18px;
+  padding: 28px 30px;
+  max-width: min(420px, 88vw);
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+#ui .panel h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  letter-spacing: 1px;
+}
+
+#ui .panel p {
+  margin: 8px 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #c9d6e8;
+}
+
+#ui .btn {
+  pointer-events: auto;
+  display: inline-block;
+  margin: 10px 6px 0;
+  padding: 14px 26px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0e1a2b;
+  background: #ffd34d;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+#ui .btn.secondary {
+  background: transparent;
+  color: #ffd34d;
+  border: 2px solid #ffd34d;
+}
+
+#ui .btn:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+#ui .err {
+  color: #ff9a9a;
+  font-size: 14px;
+}

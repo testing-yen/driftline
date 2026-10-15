@@ -35,7 +35,9 @@ npm run build      # production build -> dist/
 
 The game is a PWA: it runs in mobile Safari with no App Store involved.
 
-1. On your Mac, run `npm run dev:host` (that's `vite --host`).
+1. On your Mac, run `npm run dev`. The tunnel connects to `localhost`, so there
+   is no need for `npm run dev:host`, which also exposes the dev server to
+   everything on your LAN.
 2. **HTTPS is required**: iOS only exposes `DeviceMotion` in a secure context.
    Put the dev server behind a
    [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
@@ -58,7 +60,18 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
    `*.trycloudflare.com` and whatever `DEV_TUNNEL_HOST` is set to. If you see
    "Blocked request. This host is not allowed", check `.env.local` and
    restart the dev server.
-3. On the iPhone (any network — the tunnel is public), open the HTTPS URL. Tap
+
+   **A tunnel makes your dev server public.** Anyone with the URL can load it,
+   and Vite serves every file in the project folder that isn't on its deny
+   list (`.env*`, `*.pem`, `.git/` are blocked; anything else is not). The
+   Vite dev server isn't hardened for the internet, so:
+   - Stop `cloudflared` when you're not testing.
+   - Keep private files out of the project folder while the tunnel runs.
+   - For a named tunnel, put
+     [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/applications/configure-apps/self-hosted-public-app/)
+     in front of the hostname (free plan; one-time email PIN login), so only you
+     can reach it.
+3. On the iPhone (any network), open the HTTPS URL. Tap
    **"Enable motion & start"** — iOS 13+ requires motion permission to be
    granted from a user gesture, which is what that button does.
 4. Mount the phone in **landscape, screen facing up** on the board. Hold the

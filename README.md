@@ -35,16 +35,32 @@ npm run build      # production build -> dist/
 
 The game is a PWA: it runs in mobile Safari with no App Store involved.
 
-1. On your Mac, run `npm run dev:host` (that's `vite --host`). Note your Mac's
-   LAN IP from the terminal output, e.g. `http://192.168.1.10:5173`.
+1. On your Mac, run `npm run dev:host` (that's `vite --host`).
 2. **HTTPS is required**: iOS only exposes `DeviceMotion` in a secure context.
-   The easiest options are `npx vite --host` behind
+   Put the dev server behind a
    [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
-   (`cloudflared tunnel --url http://localhost:5173`) or mkcert + the Vite
-   `server.https` option.
-3. On the iPhone (same Wi-Fi), open the HTTPS URL. Tap **"Enable motion &
-   start"** — iOS 13+ requires motion permission to be granted from a user
-   gesture, which is what that button does.
+   (`brew install cloudflared`). Pick one:
+   - **Quick tunnel** (no Cloudflare account): run
+     `cloudflared tunnel --url http://localhost:5173` and use the random
+     `https://*.trycloudflare.com` URL it prints. A new URL each run.
+   - **Named tunnel** (stable URL on your own Cloudflare domain), one-time setup:
+
+     ```bash
+     cloudflared tunnel login                  # pick your domain in the browser
+     cloudflared tunnel create driftline-dev
+     cloudflared tunnel route dns driftline-dev dev.example.com
+     echo "DEV_TUNNEL_HOST=dev.example.com" > .env.local   # gitignored
+     ```
+
+     Then each session: `cloudflared tunnel run --url http://localhost:5173 driftline-dev`.
+
+   Vite rejects unknown hostnames, so `vite.config.ts` allow-lists
+   `*.trycloudflare.com` and whatever `DEV_TUNNEL_HOST` is set to. If you see
+   "Blocked request. This host is not allowed", check `.env.local` and
+   restart the dev server.
+3. On the iPhone (any network — the tunnel is public), open the HTTPS URL. Tap
+   **"Enable motion & start"** — iOS 13+ requires motion permission to be
+   granted from a user gesture, which is what that button does.
 4. Mount the phone in **landscape, screen facing up** on the board. Hold the
    board level while the game calibrates neutral (~1 second), then ride.
 5. If your neutral drifts mid-run, reload the page to re-calibrate.

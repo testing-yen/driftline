@@ -21,6 +21,7 @@ export class Game {
   private renderer: Renderer;
   private score = 0;
   private streak = 0;
+  private time = 0;
   private acc = 0;
   private last = 0;
   private raf = 0;
@@ -58,7 +59,7 @@ export class Game {
           this.acc -= STEP;
           steps += 1;
         }
-        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing');
+        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing', this.time);
         this.raf = requestAnimationFrame(loop);
       };
       this.raf = requestAnimationFrame(loop);
@@ -76,11 +77,13 @@ export class Game {
     this.chaser.reset();
     this.score = 0;
     this.streak = 0;
+    this.time = 0;
     this.acc = 0;
   }
 
   private update(dt: number): void {
     if (this.phase !== 'playing') return;
+    this.time += dt;
     this.input.update(dt);
     const tilt = this.input.sample();
 
@@ -115,17 +118,18 @@ export class Game {
     this.world.prune(this.player.y - 400);
 
     // Gates.
-    for (const gate of this.world.gates) {
-      if (gate.state !== 'pending') continue;
-      if (gateCrossed(prevY, this.player.y, gate.y)) {
-        if (gatePassed(this.player.x, gate.centerX, gate.halfWidth)) {
-          gate.state = 'cleared';
-          this.streak += 1;
-          this.score += scoreForGate(this.streak);
-        } else {
-          gate.state = 'missed';
-          this.streak = 0;
-        }
+    const gates = this.world.gates;
+    for (let i = 0; i < gates.length; i += 1) {
+      const gate = gates[i];
+      if (gate.state !== 'pending' || !gateCrossed(prevY, this.player.y, gate.y)) continue;
+      if (gatePassed(this.player.x, gate.centerX, gate.halfWidth)) {
+        this.streak += 1;
+        const points = scoreForGate(this.streak);
+        this.score += points;
+        gates[i] = { ...gate, state: 'cleared', points, resolvedAt: this.time };
+      } else {
+        this.streak = 0;
+        gates[i] = { ...gate, state: 'missed', resolvedAt: this.time };
       }
     }
 

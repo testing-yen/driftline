@@ -2,7 +2,7 @@ import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
 import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
-import { Renderer } from './renderer.js';
+import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
 import type { GamePhase, PlayerState } from './types.js';
@@ -19,7 +19,6 @@ export class Game {
   private player: PlayerState = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
   private world = new World(Date.now() % 2147483647);
   private chaser = new Chaser();
-  private renderer: Renderer;
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
@@ -33,13 +32,12 @@ export class Game {
   private onGameOver: ((run: RunResult) => void) | null = null;
 
   constructor(
-    canvas: HTMLCanvasElement,
+    /** Shared by every run on the page, so per-run effects are cleared in reset(). */
+    private readonly renderer: Renderer,
     private readonly input: TiltInput,
     /** Session best score to beat; null on the session's first run. */
     private readonly best: number | null,
-  ) {
-    this.renderer = new Renderer(canvas);
-  }
+  ) {}
 
   onGameOverCallback(cb: (run: RunResult) => void): void {
     this.onGameOver = cb;
@@ -87,6 +85,7 @@ export class Game {
     this.newBestAt = null;
     this.time = 0;
     this.acc = 0;
+    this.renderer.reset();
   }
 
   private update(dt: number): void {

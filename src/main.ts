@@ -1,5 +1,6 @@
 import './style.css';
 import { Game } from './game/game.js';
+import { Renderer } from './game/renderer.js';
 import { SessionBoard } from './game/session.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
@@ -13,8 +14,9 @@ const ui = document.getElementById('ui') as HTMLDivElement;
 const isTouchDevice =
   'ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0;
 
-// Outlives every Game: each restart builds a fresh one.
+// Outlive every Game: each restart builds a fresh one.
 const board = new SessionBoard();
+const renderer = new Renderer(canvas);
 let game: Game | null = null;
 let wakeLock: { release(): Promise<void> } | null = null;
 
@@ -90,7 +92,7 @@ function showMenu(input: TiltInput): void {
 function startGame(input: TiltInput): void {
   ui.innerHTML = '';
   game?.stop();
-  game = new Game(canvas, input, board.bestScore);
+  game = new Game(renderer, input, board.bestScore);
   game.onGameOverCallback((run) => {
     const outcome = board.record(run);
     showGameOver({ ui, run, outcome, board, input, onRideAgain: () => startGame(input) });

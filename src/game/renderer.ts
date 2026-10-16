@@ -67,6 +67,11 @@ export class Renderer {
     this.canvas.style.height = `${this.screenH}px`;
   }
 
+  /** Clears effects that would otherwise carry over into the next run. */
+  reset(): void {
+    this.shake = 0;
+  }
+
   addShake(amount: number): void {
     this.shake = Math.min(14, this.shake + amount);
   }

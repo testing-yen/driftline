@@ -34,7 +34,7 @@ export class Game {
   constructor(
     /** Shared by every run on the page, so per-run effects are cleared in reset(). */
     private readonly renderer: Renderer,
-    private readonly input: TiltInput,
+    readonly input: TiltInput,
     /** Session best score to beat; null on the session's first run. */
     private readonly best: number | null,
   ) {}
@@ -47,32 +47,55 @@ export class Game {
     return this.score;
   }
 
+  /** Begins a new run from zero. */
   start(): void {
     this.reset();
     this.phase = 'playing';
-    if (!this.running) {
-      this.running = true;
-      this.last = performance.now();
-      const loop = (now: number) => {
-        if (!this.running) return;
-        this.acc += Math.min(0.1, (now - this.last) / 1000);
-        this.last = now;
-        let steps = 0;
-        while (this.acc >= STEP && steps < 5) {
-          this.update(STEP);
-          this.acc -= STEP;
-          steps += 1;
-        }
-        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing', this.time, this.best, this.newBestAt);
-        this.raf = requestAnimationFrame(loop);
-      };
-      this.raf = requestAnimationFrame(loop);
-    }
+    this.runLoop();
+  }
+
+  pause(): void {
+    if (this.phase !== 'playing') return;
+    this.stop();
+    this.phase = 'paused';
+    this.draw();
+  }
+
+  /** Continues a paused run where it left off. */
+  resume(): void {
+    if (this.phase !== 'paused') return;
+    this.phase = 'playing';
+    this.runLoop();
   }
 
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+  }
+
+  private runLoop(): void {
+    if (this.running) return;
+    this.running = true;
+    // Time spent stopped must not reach the accumulator as one huge step.
+    this.last = performance.now();
+    const loop = (now: number) => {
+      if (!this.running) return;
+      this.acc += Math.min(0.1, (now - this.last) / 1000);
+      this.last = now;
+      let steps = 0;
+      while (this.acc >= STEP && steps < 5) {
+        this.update(STEP);
+        this.acc -= STEP;
+        steps += 1;
+      }
+      this.draw();
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  private draw(): void {
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt);
   }
 
   private reset(): void {

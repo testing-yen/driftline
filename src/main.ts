@@ -7,6 +7,7 @@ import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ui = document.getElementById('ui') as HTMLDivElement;
@@ -18,12 +19,13 @@ const isTouchDevice =
 const board = new SessionBoard();
 const renderer = new Renderer(canvas);
 let game: Game | null = null;
-let wakeLock: { release(): Promise<void> } | null = null;
+let wakeLock: WakeLockSentinel | null = null;
 
 async function requestWakeLock(): Promise<void> {
+  if (wakeLock && !wakeLock.released) return;
   try {
     const nav = navigator as Navigator & {
-      wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> };
+      wakeLock?: { request(type: 'screen'): Promise<WakeLockSentinel> };
     };
     if (nav.wakeLock) {
       wakeLock = await nav.wakeLock.request('screen');
@@ -89,6 +91,20 @@ function showMenu(input: TiltInput): void {
   ui.append(panel);
 }
 
+function pauseGame(): void {
+  if (game?.phase !== 'playing') return;
+  game.pause();
+  showPaused({
+    ui,
+    input: game.input,
+    onResume: () => {
+      ui.innerHTML = '';
+      void requestWakeLock();
+      game?.resume();
+    },
+  });
+}
+
 function startGame(input: TiltInput): void {
   ui.innerHTML = '';
   game?.stop();
@@ -103,15 +119,12 @@ function startGame(input: TiltInput): void {
 function boot(): void {
   registerServiceWorker();
 
+  // Coming back stays paused until the rider taps Resume.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      game?.stop();
-      void wakeLock?.release().catch(() => undefined);
-      wakeLock = null;
-    } else if (game && game.phase === 'playing') {
-      void requestWakeLock();
-      game.start();
-    }
+    if (!document.hidden) return;
+    pauseGame();
+    void wakeLock?.release().catch(() => undefined);
+    wakeLock = null;
   });
 
   let input: TiltInput;

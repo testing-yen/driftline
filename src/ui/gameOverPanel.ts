@@ -1,11 +1,11 @@
 import { formatDuration, type RecordOutcome, type RunResult, type SessionBoard } from '../game/session.js';
 import type { TiltInput } from '../input/TiltInput.js';
+import { recenterButton } from './recenter.js';
 
 const BOARD_ROWS = 5;
 const CONFETTI_PIECES = 36;
 const CONFETTI_COLORS = ['#ffd34d', '#ff6b6b', '#4dd0ff', '#7be37b', '#ffffff', '#c78bff'];
 const CONFETTI_LIFETIME_MS = 2500;
-const RECENTER_CONFIRM_MS = 1500;
 
 export interface GameOverOptions {
   ui: HTMLElement;
@@ -35,7 +35,7 @@ export function showGameOver({ ui, run, outcome, board, input, onRideAgain }: Ga
     el('p', 'go-stats', `${run.distanceM} m · ${plural(run.gatesCleared, 'gate')} · ${formatDuration(run.durationS)}`),
   );
 
-  const actions = el('div', 'go-actions');
+  const actions = el('div', 'panel-actions');
   const ride = el('button', 'btn', 'Ride again');
   ride.addEventListener('click', onRideAgain);
   actions.append(ride);
@@ -79,37 +79,6 @@ function scoreRow(rank: number, r: RunResult, isThisRun: boolean): HTMLTableRowE
     row.append(el('td', '', String(cell)));
   }
   return row;
-}
-
-/**
- * Re-zeroes the IMU neutral without a page refresh (which would wipe the
- * session board). Ride is locked until the calibrator has its samples so a
- * run never starts on a half-collected neutral.
- */
-function recenterButton(input: TiltInput, ride: HTMLButtonElement): HTMLButtonElement {
-  const button = el('button', 'btn secondary', 'Re-center');
-  button.addEventListener('click', () => {
-    ride.disabled = true;
-    button.disabled = true;
-    button.setAttribute('aria-busy', 'true');
-    button.textContent = 'Hold the board level…';
-    input.calibrate();
-    const waitForNeutral = () => {
-      if (!input.calibrated) {
-        requestAnimationFrame(waitForNeutral);
-        return;
-      }
-      button.removeAttribute('aria-busy');
-      button.textContent = 'Re-centered ✓';
-      button.disabled = false;
-      ride.disabled = false;
-      setTimeout(() => {
-        if (!button.hasAttribute('aria-busy')) button.textContent = 'Re-center';
-      }, RECENTER_CONFIRM_MS);
-    };
-    requestAnimationFrame(waitForNeutral);
-  });
-  return button;
 }
 
 function confettiBurst(): HTMLElement {

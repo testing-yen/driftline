@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
-import type { Gate, PlayerState } from './types.js';
+import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
 /**
@@ -82,7 +82,7 @@ export class Renderer {
     chaser: Chaser,
     score: number,
     streak: number,
-    phase: 'playing' | 'gameover',
+    phase: GamePhase,
     time: number,
     best: number | null,
     newBestAt: number | null,
@@ -316,7 +316,7 @@ export class Renderer {
     score: number,
     streak: number,
     player: PlayerState,
-    phase: 'playing' | 'gameover',
+    phase: GamePhase,
     best: number | null,
   ): void {
     const { ctx, screenW: w, screenH: h } = this;
@@ -347,8 +347,8 @@ export class Renderer {
       ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(`🔥 x${streak}`, right, 44);
     }
-    if (phase === 'gameover') {
-      // The DOM game-over panel sits on top of this dim.
+    if (phase === 'gameover' || phase === 'paused') {
+      // The DOM panel sits on top of this dim.
       ctx.fillStyle = 'rgba(14,26,43,0.72)';
       ctx.fillRect(0, 0, w, h);
     }

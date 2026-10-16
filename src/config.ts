@@ -18,7 +18,7 @@ export const CONFIG = {
   viewMargin: 40, // snow kept visible beyond each slope edge; the view zooms out to fit slope + margin on narrow screens
 
   /** Tilt input */
-  maxTiltDeg: 25, // tilt angle that maps to full deflection
+  maxTiltDeg: 10, // tilt for full deflection; must sit inside the board's reach (~12-13° before the edge hits the floor) so riders never need to ground it
   deadZoneDeg: 2, // ignore tilt smaller than this (1-3 deg recommended)
   lowPassAlpha: 0.22, // smoothing for IMU noise (~10 Hz feel at 60 fps)
   calibSamples: 60, // samples (~1s) used for per-session neutral calibration

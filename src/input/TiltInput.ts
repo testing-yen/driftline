@@ -26,6 +26,8 @@ export interface TiltInput {
   sample(): TiltSample;
   /** Re-zero the neutral position (call while holding the board level). */
   calibrate(): void;
+  /** False while a calibrate() is still collecting neutral samples. */
+  readonly calibrated: boolean;
   /** Advance time-based smoothing. Called once per frame by the game loop. */
   update(dt: number): void;
 }

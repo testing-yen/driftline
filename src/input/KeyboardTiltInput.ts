@@ -10,6 +10,7 @@ import type { TiltInput, TiltSample } from './TiltInput.js';
 export class KeyboardTiltInput implements TiltInput {
   readonly name = 'keyboard';
   readonly needsUserGesture = false;
+  readonly calibrated = true;
 
   private keys = new Set<string>();
   private current: TiltSample = { x: 0, y: 0 };

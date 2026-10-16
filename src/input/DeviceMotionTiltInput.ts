@@ -72,6 +72,10 @@ export class DeviceMotionTiltInput implements TiltInput {
     this.filterY.reset();
   }
 
+  get calibrated(): boolean {
+    return this.calibrator.isCalibrated;
+  }
+
   update(): void {
     // Samples arrive on their own event cadence; nothing per-frame needed.
   }

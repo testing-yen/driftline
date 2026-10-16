@@ -76,12 +76,33 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
 3. On the iPhone (any network), open the HTTPS URL. Tap
    **"Enable motion & start"** — iOS 13+ requires motion permission to be
    granted from a user gesture, which is what that button does.
-4. Mount the phone in **landscape, screen facing up** on the board. Hold the
-   board level while the game calibrates neutral (~1 second), then ride.
-5. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
+4. Mount the phone in **portrait, screen facing up, top edge pointing
+   forward** on the board. Hold the board level while the game calibrates
+   neutral (~1 second), then ride.
+5. **Calibrate your board** once, and again whenever the hardware changes. Tap
+   **Calibrate board** on the start screen or the Paused panel:
+   1. Hold the board level while it measures neutral.
+   2. Push the forward edge to the floor and hold still until the bar fills
+      (about 1 second). Return the board to level.
+   3. Repeat for the back, left, and right edges.
+   4. Check the summary, which lists each edge's floor angle and the angle for
+      full speed, then tap **Save**. **Redo** starts over; **Cancel** keeps
+      the previous measurement.
+
+   The phone remembers the result (localStorage key `driftline.boardReach.v1`).
+   Until you calibrate, the game uses angles measured on one wobble board
+   (`DEFAULT_REACH` in `src/input/boardReach.ts`).
+
+   Full speed and full steering arrive at 70% of each edge's floor angle, so
+   you reach them while planking, not while resting on the edge. Past 90%
+   the edge is effectively on the floor: tuck stops adding speed and the game
+   shows **Lift the edge!**. Both fractions depend on the hardware; tune
+   `fullLeanFraction` and `groundedFraction` in `src/config.ts` for another
+   board or a plank rig.
+6. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
    hold the board level, and tap **Re-center**. Reloading would wipe the
    session board.
-6. **Wake lock**: the game requests a screen wake lock on start so the display
+7. **Wake lock**: the game requests a screen wake lock on start so the display
    doesn't sleep mid-run. If you lock the phone or switch apps mid-run, the run
    pauses and keeps its score. When you come back, the Paused panel waits until
    you are on the board again and tap **Resume**.
@@ -104,7 +125,7 @@ and service worker make it installable and work offline after the first load).
 ```
 
 - **Unit** (`npm test`): collision detection, scoring, chaser catch-up logic,
-  input dead-zone math. Run in CI on every push/PR.
+  input dead-zone math, per-board lean normalization, and the calibration steps. Run in CI on every push/PR.
 - **Desktop sim**: `KeyboardTiltInput` maps arrows/WASD and pointer drag to the
   same `TiltInput` interface the phone uses — tune `src/config.ts` here.
 - **On-phone**: verifies IMU calibration, dead zone feel, and performance on
@@ -124,6 +145,8 @@ src/
   input/
     TiltInput.ts           # the interface the game sees
     tiltMath.ts            # dead zone, low-pass, calibration (tested)
+    boardReach.ts          # per-board reach: lean normalization, grounded, storage (tested)
+    reachCalibration.ts    # Calibrate board step machine (tested)
     KeyboardTiltInput.ts   # desktop dev/testing
     DeviceMotionTiltInput.ts # real phone IMU
   game/

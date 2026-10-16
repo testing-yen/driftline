@@ -3,6 +3,7 @@ import type { TiltInput, TiltSample } from './TiltInput.js';
 import {
   LowPassFilter,
   NeutralCalibrator,
+  TiltRange,
   applyDeadZone,
   deadZoneToNormal,
   degToNormal,
@@ -32,6 +33,8 @@ export class DeviceMotionTiltInput implements TiltInput {
   readonly needsUserGesture = true;
 
   private tilt: TiltSample = { x: 0, y: 0 };
+  private degrees: TiltSample = { x: 0, y: 0 };
+  private range = new TiltRange();
   private filterX = new LowPassFilter(CONFIG.lowPassAlpha);
   private filterY = new LowPassFilter(CONFIG.lowPassAlpha);
   private calibrator = new NeutralCalibrator(CONFIG.calibSamples);
@@ -68,8 +71,14 @@ export class DeviceMotionTiltInput implements TiltInput {
 
   calibrate(): void {
     this.calibrator.reset();
+    // Maxima were measured from the old neutral.
+    this.range.reset();
     this.filterX.reset();
     this.filterY.reset();
+  }
+
+  get angles(): { now: TiltSample; range: TiltRange } {
+    return { now: this.degrees, range: this.range };
   }
 
   get calibrated(): boolean {
@@ -96,8 +105,12 @@ export class DeviceMotionTiltInput implements TiltInput {
       const off = this.calibrator.offset();
 
       const dz = deadZoneToNormal(CONFIG.deadZoneDeg, CONFIG.maxTiltDeg);
-      const nx = degToNormal(this.filterX.push(rollDeg - off.x), CONFIG.maxTiltDeg);
-      const ny = degToNormal(this.filterY.push(pitchDeg - off.y), CONFIG.maxTiltDeg);
+      const xDeg = this.filterX.push(rollDeg - off.x);
+      const yDeg = this.filterY.push(pitchDeg - off.y);
+      this.degrees = { x: xDeg, y: yDeg };
+      if (this.calibrator.isCalibrated) this.range.record(xDeg, yDeg);
+      const nx = degToNormal(xDeg, CONFIG.maxTiltDeg);
+      const ny = degToNormal(yDeg, CONFIG.maxTiltDeg);
 
       this.tilt = { x: applyDeadZone(nx, dz), y: applyDeadZone(ny, dz) };
     } catch (err) {

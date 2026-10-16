@@ -11,6 +11,7 @@ export class KeyboardTiltInput implements TiltInput {
   readonly name = 'keyboard';
   readonly needsUserGesture = false;
   readonly calibrated = true;
+  readonly angles = null;
 
   private keys = new Set<string>();
   private current: TiltSample = { x: 0, y: 0 };

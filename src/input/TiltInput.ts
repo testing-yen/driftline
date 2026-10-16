@@ -8,6 +8,8 @@
  * Implementations: KeyboardTiltInput (desktop dev/testing) and
  * DeviceMotionTiltInput (real phone IMU on the board).
  */
+import type { TiltRange } from './tiltMath.js';
+
 export interface TiltSample {
   x: number;
   y: number;
@@ -28,6 +30,11 @@ export interface TiltInput {
   calibrate(): void;
   /** False while a calibrate() is still collecting neutral samples. */
   readonly calibrated: boolean;
+  /**
+   * Calibrated, smoothed lean in degrees (x: + right, y: + forward) and the
+   * furthest lean per direction; null when the input has no real angle (keyboard).
+   */
+  readonly angles: { readonly now: TiltSample; readonly range: TiltRange } | null;
   /** Advance time-based smoothing. Called once per frame by the game loop. */
   update(dt: number): void;
 }

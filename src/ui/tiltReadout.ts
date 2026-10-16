@@ -1,0 +1,58 @@
+import type { TiltInput } from '../input/TiltInput.js';
+import type { TiltRange } from '../input/tiltMath.js';
+
+type Direction = keyof Pick<TiltRange, 'forward' | 'back' | 'left' | 'right'>;
+
+const ROWS: { dir: Direction; label: string; now: (x: number, y: number) => number }[] = [
+  { dir: 'forward', label: 'Fwd', now: (_x, y) => y },
+  { dir: 'back', label: 'Back', now: (_x, y) => -y },
+  { dir: 'left', label: 'Left', now: (x) => -x },
+  { dir: 'right', label: 'Right', now: (x) => x },
+];
+
+/**
+ * Live lean angles and the furthest lean per direction, for measuring how far
+ * a real board can tilt before its edge touches the floor. Returns null for
+ * inputs without a real angle (keyboard).
+ */
+export function tiltReadout(input: TiltInput): HTMLElement | null {
+  if (!input.angles) return null;
+
+  const table = document.createElement('table');
+  const line = (cells: string[], header: boolean) => {
+    const tr = document.createElement('tr');
+    for (const [i, text] of cells.entries()) {
+      const cell = document.createElement(header || i === 0 ? 'th' : 'td');
+      cell.textContent = text;
+      tr.append(cell);
+    }
+    table.append(tr);
+    return tr;
+  };
+  line(['Tilt °', 'Now', 'Max'], true);
+  const rows = ROWS.map(({ label }) => line([label, '', ''], false));
+
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'btn secondary';
+  reset.textContent = 'Reset max';
+  reset.addEventListener('click', () => input.angles?.range.reset());
+
+  const box = document.createElement('div');
+  box.className = 'tilt-readout';
+  box.append(table, reset);
+
+  const update = () => {
+    // Re-read every frame: the input replaces its angle sample on each motion event.
+    const angles = input.angles;
+    if (!box.isConnected || !angles) return;
+    const { x, y } = angles.now;
+    ROWS.forEach(({ dir, now }, i) => {
+      rows[i].cells[1].textContent = Math.max(0, now(x, y)).toFixed(1);
+      rows[i].cells[2].textContent = angles.range[dir].toFixed(1);
+    });
+    requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+  return box;
+}

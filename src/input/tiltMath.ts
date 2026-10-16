@@ -28,6 +28,29 @@ export function deadZoneToNormal(deadZoneDeg: number, maxTiltDeg: number): numbe
   return Math.max(0, Math.min(1, deadZoneDeg / maxTiltDeg));
 }
 
+/** Furthest lean seen in each direction since the last reset, in degrees from neutral. */
+export class TiltRange {
+  forward = 0;
+  back = 0;
+  left = 0;
+  right = 0;
+
+  /** x: + right, y: + forward (tuck). */
+  record(xDeg: number, yDeg: number): void {
+    this.right = Math.max(this.right, xDeg);
+    this.left = Math.max(this.left, -xDeg);
+    this.forward = Math.max(this.forward, yDeg);
+    this.back = Math.max(this.back, -yDeg);
+  }
+
+  reset(): void {
+    this.forward = 0;
+    this.back = 0;
+    this.left = 0;
+    this.right = 0;
+  }
+}
+
 /** One-pole low-pass filter for smoothing noisy IMU samples. */
 export class LowPassFilter {
   private state = 0;

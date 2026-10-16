@@ -49,6 +49,9 @@ export const CONFIG = {
   gateScore: 100, // points per clean gate
   gateStreakBonus: 25, // extra points per consecutive gate in a streak
   stumblePenalty: 50, // points lost on crash (score never goes below 0)
+
+  /** Session best */
+  newBestBannerDuration: 1.6, // seconds the mid-run "NEW BEST!" banner stays up
 } as const;
 
 export type Config = typeof CONFIG;

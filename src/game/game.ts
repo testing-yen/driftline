@@ -3,7 +3,8 @@ import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
 import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
 import { Renderer } from './renderer.js';
-import { applyStumblePenalty, scoreForDistance, scoreForGate } from './scoring.js';
+import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
+import type { RunResult } from './session.js';
 import type { GamePhase, PlayerState } from './types.js';
 import { World } from './world.js';
 
@@ -21,21 +22,26 @@ export class Game {
   private renderer: Renderer;
   private score = 0;
   private streak = 0;
+  private gatesCleared = 0;
+  /** Game time when the score first passed the session best; null until then. */
+  private newBestAt: number | null = null;
   private time = 0;
   private acc = 0;
   private last = 0;
   private raf = 0;
   private running = false;
-  private onGameOver: (() => void) | null = null;
+  private onGameOver: ((run: RunResult) => void) | null = null;
 
   constructor(
     canvas: HTMLCanvasElement,
     private readonly input: TiltInput,
+    /** Session best score to beat; null on the session's first run. */
+    private readonly best: number | null,
   ) {
     this.renderer = new Renderer(canvas);
   }
 
-  onGameOverCallback(cb: () => void): void {
+  onGameOverCallback(cb: (run: RunResult) => void): void {
     this.onGameOver = cb;
   }
 
@@ -59,7 +65,7 @@ export class Game {
           this.acc -= STEP;
           steps += 1;
         }
-        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing', this.time);
+        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing', this.time, this.best, this.newBestAt);
         this.raf = requestAnimationFrame(loop);
       };
       this.raf = requestAnimationFrame(loop);
@@ -77,6 +83,8 @@ export class Game {
     this.chaser.reset();
     this.score = 0;
     this.streak = 0;
+    this.gatesCleared = 0;
+    this.newBestAt = null;
     this.time = 0;
     this.acc = 0;
   }
@@ -84,6 +92,7 @@ export class Game {
   private update(dt: number): void {
     if (this.phase !== 'playing') return;
     this.time += dt;
+    const prevScore = this.score;
     this.input.update(dt);
     const tilt = this.input.sample();
 
@@ -124,6 +133,7 @@ export class Game {
       if (gate.state !== 'pending' || !gateCrossed(prevY, this.player.y, gate.y)) continue;
       if (gatePassed(this.player.x, gate.centerX, gate.halfWidth)) {
         this.streak += 1;
+        this.gatesCleared += 1;
         const points = scoreForGate(this.streak);
         this.score += points;
         gates[i] = { ...gate, state: 'cleared', points, resolvedAt: this.time };
@@ -153,12 +163,22 @@ export class Game {
       }
     }
 
+    // Compare whole points, as shown in the HUD and recorded on the board.
+    if (this.newBestAt === null && passedBest(Math.floor(prevScore), Math.floor(this.score), this.best)) {
+      this.newBestAt = this.time;
+    }
+
     // Chaser.
     this.chaser.maybeActivate(this.player.y, this.player.x, this.player.y);
     this.chaser.update(dt, this.player.x, this.player.y);
     if (this.chaser.caught(this.player.x, this.player.y)) {
       this.phase = 'gameover';
-      this.onGameOver?.();
+      this.onGameOver?.({
+        score: Math.floor(this.score),
+        distanceM: Math.floor(this.player.y / 10),
+        gatesCleared: this.gatesCleared,
+        durationS: this.time,
+      });
     }
   }
 }

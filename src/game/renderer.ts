@@ -79,6 +79,8 @@ export class Renderer {
     streak: number,
     phase: 'playing' | 'gameover',
     time: number,
+    best: number | null,
+    newBestAt: number | null,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
@@ -124,7 +126,11 @@ export class Renderer {
 
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawHud(score, streak, player, phase);
+    this.drawHud(score, streak, player, phase, best);
+    if (phase === 'playing' && newBestAt !== null) {
+      const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
+      if (t >= 0 && t < 1) this.drawNewBestBanner(t);
+    }
   }
 
   private drawSnow(player: PlayerState): void {
@@ -306,6 +312,7 @@ export class Renderer {
     streak: number,
     player: PlayerState,
     phase: 'playing' | 'gameover',
+    best: number | null,
   ): void {
     const { ctx, screenW: w, screenH: h } = this;
     const left = 18 + this.insetLeft;
@@ -316,6 +323,19 @@ export class Renderer {
     ctx.fillText(`${Math.floor(score)}`, left, 44);
     ctx.font = '500 18px system-ui, sans-serif';
     ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 72);
+    if (best !== null) {
+      const label = `BEST ${best}`;
+      ctx.font = '700 20px system-ui, sans-serif';
+      if (Math.floor(score) > best) {
+        // Gold text alone washes out on snow, so a beaten best gets a gold pill.
+        ctx.fillStyle = '#ffc21a';
+        ctx.beginPath();
+        ctx.roundRect(left - 8, 82, ctx.measureText(label).width + 16, 28, 14);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#22303f';
+      ctx.fillText(label, left, 102);
+    }
     if (streak >= 2) {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#1f7a3d';
@@ -332,5 +352,30 @@ export class Renderer {
       ctx.fillText(`Score ${Math.floor(score)} · ${Math.floor(player.y / 10)} m`, w / 2, h / 2 + 12);
       ctx.fillText('Tap to ride again', w / 2, h / 2 + 52);
     }
+  }
+
+  /** t runs 0..1 over the banner's lifetime: pop in, hold, fade out. */
+  private drawNewBestBanner(t: number): void {
+    const { ctx, screenW: w, screenH: h } = this;
+    const grow = Math.min(1, t / 0.15);
+    const scale = 0.6 + 0.4 * grow + 0.15 * Math.sin(grow * Math.PI);
+    const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
+    const cx = (this.insetLeft + w - this.insetRight) / 2;
+    // Below the top-left HUD block and well above the rider at 62% height.
+    const cy = Math.max(150, h * 0.26);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.font = '900 56px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#22303f';
+    ctx.strokeText('NEW BEST!', 0, 0);
+    ctx.fillStyle = '#ffc21a';
+    ctx.fillText('NEW BEST!', 0, 0);
+    ctx.restore();
   }
 }

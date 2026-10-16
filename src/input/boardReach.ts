@@ -3,10 +3,10 @@ import { applyDeadZone, deadZoneToNormal, degToNormal } from './tiltMath.js';
 
 /** Degrees from neutral at which the board's edge touches the floor, per direction. */
 export interface BoardReach {
-  forward: number;
-  back: number;
-  left: number;
-  right: number;
+  readonly forward: number;
+  readonly back: number;
+  readonly left: number;
+  readonly right: number;
 }
 
 export type LeanDirection = keyof BoardReach;
@@ -19,7 +19,7 @@ export const LEAN_DIRECTIONS: readonly LeanDirection[] = ['forward', 'back', 'le
  * (35.1, 34.2, 27.9, 37.8 degrees, rounded). Custom hardware must re-measure
  * with the Calibrate board flow.
  */
-export const DEFAULT_REACH: BoardReach = { forward: 35, back: 34, left: 28, right: 38 };
+export const DEFAULT_REACH: BoardReach = Object.freeze({ forward: 35, back: 34, left: 28, right: 38 });
 
 /** Stored reach outside this range is a corrupt value or a phone not on a board, not a real measurement. */
 export const REACH_LIMITS_DEG = { min: 3, max: 80 } as const;
@@ -75,7 +75,7 @@ export function parseStoredReach(raw: string | null): BoardReach {
   }
   if (typeof value !== 'object' || value === null) return DEFAULT_REACH;
   const record = value as Record<string, unknown>;
-  const reach = { ...DEFAULT_REACH };
+  const reach: Record<LeanDirection, number> = { ...DEFAULT_REACH };
   for (const dir of LEAN_DIRECTIONS) {
     const deg = record[dir];
     if (!isReachDeg(deg)) return DEFAULT_REACH;

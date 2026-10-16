@@ -5,10 +5,18 @@ import type { LeanDegrees } from './TiltInput.js';
 /** A steady push being timed. It restarts whenever the lean leaves `anchor ± reachHoldToleranceDeg`. */
 interface Hold {
   since: number;
+  /** Time of the latest sample, to notice a stalled stream. */
+  last: number;
   anchor: number;
   sum: number;
   count: number;
 }
+
+/**
+ * A longer gap between samples means the stream stalled (phone locked, tab
+ * hidden), so the hold restarts instead of averaging across the gap.
+ */
+const MAX_SAMPLE_GAP_MS = 200;
 
 /**
  * The Calibrate board flow: level the board for the neutral, then push each
@@ -18,7 +26,7 @@ interface Hold {
 export type CalibStep =
   | { kind: 'neutral'; reach: BoardReach }
   | { kind: 'push'; dir: LeanDirection; reach: BoardReach; hold: Hold | null }
-  | { kind: 'return'; next: LeanDirection; reach: BoardReach }
+  | { kind: 'return'; captured: LeanDirection; next: LeanDirection; reach: BoardReach }
   | { kind: 'done'; reach: BoardReach };
 
 export interface CalibSample {
@@ -60,17 +68,22 @@ function push(dir: LeanDirection, reach: BoardReach): CalibStep {
 }
 
 function advancePush(step: Extract<CalibStep, { kind: 'push' }>, deg: number, now: number): CalibStep {
-  if (deg < CONFIG.reachCaptureMinDeg || deg > REACH_LIMITS_DEG.max) {
+  // Written so NaN also drops the hold.
+  if (!(deg >= CONFIG.reachCaptureMinDeg && deg <= REACH_LIMITS_DEG.max)) {
     return step.hold ? { ...step, hold: null } : step;
   }
   const hold = step.hold;
-  if (!hold || Math.abs(deg - hold.anchor) > CONFIG.reachHoldToleranceDeg) {
-    return { ...step, hold: { since: now, anchor: deg, sum: deg, count: 1 } };
+  if (
+    !hold ||
+    Math.abs(deg - hold.anchor) > CONFIG.reachHoldToleranceDeg ||
+    now - hold.last > MAX_SAMPLE_GAP_MS
+  ) {
+    return { ...step, hold: { since: now, last: now, anchor: deg, sum: deg, count: 1 } };
   }
-  const held = { ...hold, sum: hold.sum + deg, count: hold.count + 1 };
+  const held = { ...hold, last: now, sum: hold.sum + deg, count: hold.count + 1 };
   if (now - held.since < CONFIG.reachHoldMs) return { ...step, hold: held };
 
   const reach = { ...step.reach, [step.dir]: held.sum / held.count };
   const next = LEAN_DIRECTIONS[LEAN_DIRECTIONS.indexOf(step.dir) + 1];
-  return next ? { kind: 'return', next, reach } : { kind: 'done', reach };
+  return next ? { kind: 'return', captured: step.dir, next, reach } : { kind: 'done', reach };
 }

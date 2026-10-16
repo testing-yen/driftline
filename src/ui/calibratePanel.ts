@@ -10,7 +10,6 @@ const DIRECTION_LABEL: Record<LeanDirection, string> = {
   right: 'Right',
 };
 
-/** Neutral plus one push per direction. */
 const STEP_COUNT = 1 + LEAN_DIRECTIONS.length;
 
 export function calibrateBoardButton(onClick: () => void): HTMLButtonElement {
@@ -60,7 +59,6 @@ export function showCalibration({ ui, input, angles, onClose }: CalibrationOptio
     return startCalibration(angles.reach);
   }
 
-  /** Rebuilds the panel when the step changes; per-frame values are set in tick(). */
   function render(): void {
     live.hidden = step.kind !== 'push' && step.kind !== 'return';
     bar.hidden = step.kind !== 'push';
@@ -79,13 +77,11 @@ export function showCalibration({ ui, input, angles, onClose }: CalibrationOptio
         title.textContent = `Push the ${step.dir.toUpperCase()} edge to the floor and hold`;
         hint.textContent = 'Hold still until the bar fills.';
         break;
-      case 'return': {
-        const captured = LEAN_DIRECTIONS[LEAN_DIRECTIONS.indexOf(step.next) - 1];
-        stepLine.textContent = `${DIRECTION_LABEL[captured]}: ${step.reach[captured].toFixed(1)}° ✓`;
+      case 'return':
+        stepLine.textContent = `${DIRECTION_LABEL[step.captured]}: ${step.reach[step.captured].toFixed(1)}° ✓`;
         title.textContent = 'Back to level';
         hint.textContent = `Under ${CONFIG.reachLevelDeg}° every way, then the ${step.next.toUpperCase()} edge.`;
         break;
-      }
       case 'done': {
         stepLine.textContent = 'All edges captured ✓';
         title.textContent = 'Your board';

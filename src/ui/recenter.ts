@@ -2,6 +2,15 @@ import type { TiltInput } from '../input/TiltInput.js';
 
 const RECENTER_CONFIRM_MS = 1500;
 
+/** Calls `onReady` once the input's neutral calibration has all its samples. */
+export function whenCalibrated(input: TiltInput, onReady: () => void): void {
+  const check = () => {
+    if (input.calibrated) onReady();
+    else requestAnimationFrame(check);
+  };
+  requestAnimationFrame(check);
+}
+
 /**
  * Re-zeroes the IMU neutral without a page refresh (which would wipe the
  * session board). The panel's primary button is locked until the calibrator
@@ -17,11 +26,7 @@ export function recenterButton(input: TiltInput, primary: HTMLButtonElement): HT
     button.setAttribute('aria-busy', 'true');
     button.textContent = 'Hold the board level…';
     input.calibrate();
-    const waitForNeutral = () => {
-      if (!input.calibrated) {
-        requestAnimationFrame(waitForNeutral);
-        return;
-      }
+    whenCalibrated(input, () => {
       button.removeAttribute('aria-busy');
       button.textContent = 'Re-centered ✓';
       button.disabled = false;
@@ -29,8 +34,7 @@ export function recenterButton(input: TiltInput, primary: HTMLButtonElement): HT
       setTimeout(() => {
         if (!button.hasAttribute('aria-busy')) button.textContent = 'Re-center';
       }, RECENTER_CONFIRM_MS);
-    };
-    requestAnimationFrame(waitForNeutral);
+    });
   });
   return button;
 }

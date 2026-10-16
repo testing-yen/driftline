@@ -1,12 +1,7 @@
-import { leanToward, type LeanDirection } from '../input/boardReach.js';
+import { LEAN_DIRECTIONS, leanToward, type LeanDirection } from '../input/boardReach.js';
 import type { TiltInput } from '../input/TiltInput.js';
 
-const ROWS: { dir: LeanDirection; label: string }[] = [
-  { dir: 'forward', label: 'Fwd' },
-  { dir: 'back', label: 'Back' },
-  { dir: 'left', label: 'Left' },
-  { dir: 'right', label: 'Right' },
-];
+const LABEL: Record<LeanDirection, string> = { forward: 'Fwd', back: 'Back', left: 'Left', right: 'Right' };
 
 /**
  * Live lean angles and the furthest lean per direction, for measuring how far
@@ -28,7 +23,7 @@ export function tiltReadout(input: TiltInput): HTMLElement | null {
     return tr;
   };
   line(['Tilt °', 'Now', 'Max'], true);
-  const rows = ROWS.map(({ label }) => line([label, '', ''], false));
+  const rows = LEAN_DIRECTIONS.map((dir) => line([LABEL[dir], '', ''], false));
 
   const reset = document.createElement('button');
   reset.type = 'button';
@@ -45,7 +40,7 @@ export function tiltReadout(input: TiltInput): HTMLElement | null {
     const angles = input.angles;
     if (!box.isConnected || !angles) return;
     const { x, y } = angles.now;
-    ROWS.forEach(({ dir }, i) => {
+    LEAN_DIRECTIONS.forEach((dir, i) => {
       rows[i].cells[1].textContent = Math.max(0, leanToward(dir, x, y)).toFixed(1);
       rows[i].cells[2].textContent = angles.range[dir].toFixed(1);
     });

@@ -1,6 +1,6 @@
 import type { TiltInput } from '../input/TiltInput.js';
 import { calibrateBoardButton, showCalibration } from './calibratePanel.js';
-import { recenterButton } from './recenter.js';
+import { recenterButton, whenCalibrated } from './recenter.js';
 import { tiltReadout } from './tiltReadout.js';
 
 const PAUSE_ICON =
@@ -45,6 +45,13 @@ export function showPaused(options: PausedOptions): void {
   resume.textContent = 'Resume';
   resume.addEventListener('click', onResume);
   actions.append(resume);
+  if (!input.calibrated) {
+    // Back from a Calibrate board cancelled while it was still measuring level.
+    resume.disabled = true;
+    whenCalibrated(input, () => {
+      resume.disabled = false;
+    });
+  }
   if (input.needsUserGesture) {
     actions.append(recenterButton(input, resume));
   }

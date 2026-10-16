@@ -326,8 +326,8 @@ export class Renderer {
     ctx.font = '700 28px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(`${Math.floor(score)}`, left, 44);
-    ctx.font = '500 18px system-ui, sans-serif';
-    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 72);
+    ctx.font = '600 22px system-ui, sans-serif';
+    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 76);
     if (best !== null) {
       const label = `BEST ${best}`;
       ctx.font = '700 20px system-ui, sans-serif';
@@ -335,15 +335,16 @@ export class Renderer {
         // Gold text alone washes out on snow, so a beaten best gets a gold pill.
         ctx.fillStyle = '#ffc21a';
         ctx.beginPath();
-        ctx.roundRect(left - 8, 82, ctx.measureText(label).width + 16, 28, 14);
+        ctx.roundRect(left - 8, 88, ctx.measureText(label).width + 16, 30, 15);
         ctx.fill();
       }
       ctx.fillStyle = '#22303f';
-      ctx.fillText(label, left, 102);
+      ctx.fillText(label, left, 110);
     }
     if (streak >= 2) {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#1f7a3d';
+      ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(`🔥 x${streak}`, right, 44);
     }
     if (phase === 'gameover') {
@@ -361,7 +362,7 @@ export class Renderer {
     const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
     const cx = (this.insetLeft + w - this.insetRight) / 2;
     // Below the top-left HUD block and well above the rider at 62% height.
-    const cy = Math.max(150, h * 0.26);
+    const cy = Math.max(160, h * 0.26);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(cx, cy);

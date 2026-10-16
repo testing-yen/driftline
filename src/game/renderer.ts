@@ -59,7 +59,7 @@ export class Renderer {
   gaugeStyle: GaugeStyle = 'side';
   private readonly gaugeDrawers: Record<Exclude<GaugeStyle, 'off'>, GaugeDraw> = {
     side: (gauge, rider, time) => this.drawSideGauge(gauge, rider, time),
-    top: (gauge, _rider, time) => this.drawTopGauge(gauge, time),
+    bottom: (gauge, _rider, time) => this.drawBottomGauge(gauge, time),
     rider: (gauge, rider, time) => this.drawRiderGauge(gauge, rider, time),
   };
   /** Which side of the rider the dial sits on; flips only when it would leave the screen, so it does not jitter. */
@@ -76,6 +76,7 @@ export class Renderer {
   private insetLeft = 0;
   private insetRight = 0;
   private insetTop = 0;
+  private insetBottom = 0;
   private shake = 0;
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
@@ -88,7 +89,7 @@ export class Renderer {
     this.insetProbe.style.cssText =
       'position:fixed;visibility:hidden;pointer-events:none;' +
       'padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);' +
-      'padding-top:env(safe-area-inset-top);';
+      'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);';
     document.body.appendChild(this.insetProbe);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -102,6 +103,7 @@ export class Renderer {
     this.insetLeft = parseFloat(probe.paddingLeft) || 0;
     this.insetRight = parseFloat(probe.paddingRight) || 0;
     this.insetTop = parseFloat(probe.paddingTop) || 0;
+    this.insetBottom = parseFloat(probe.paddingBottom) || 0;
     // The slope is centred, so reserve the larger inset (the notch side) on both sides.
     this.scale = viewScale(this.screenW, Math.max(this.insetLeft, this.insetRight));
     this.w = this.screenW / this.scale;
@@ -419,19 +421,16 @@ export class Renderer {
     this.drawGaugeLabel('BRAKE', labelRight, bottom, 'right', GAUGE_COLORS.brakeFill);
   }
 
-  /** B: horizontal bar at the top centre, between the score and the pause button, right = faster. */
-  private drawTopGauge(gauge: GaugeModel, time: number): void {
+  /** B: horizontal bar at the bottom centre, right = faster. */
+  private drawBottomGauge(gauge: GaugeModel, time: number): void {
     const thickness = 28;
     const labelRoom = 90;
-    // Clear of the score / distance / BEST block on the left and the streak on the right.
-    const clearLeft = this.insetLeft + 150;
-    const clearRight = this.screenW - this.insetRight - PAUSE_BUTTON_CLEARANCE - 90;
     const centre = (this.insetLeft + this.screenW - this.insetRight) / 2;
-    const halfRoom = Math.min(centre - clearLeft, clearRight - centre) - labelRoom;
-    const length = Math.max(120, Math.min(360, 2 * halfRoom));
+    const room = this.screenW - this.insetLeft - this.insetRight - 2 * (labelRoom + 18);
+    const length = Math.max(120, Math.min(420, room));
     const x0 = centre - length / 2;
-    // Room above the bar for the target chevron.
-    const cy = this.insetTop + 12 + 24 + thickness / 2;
+    // Room below the bar for the chaser marker, clear of the home indicator.
+    const cy = this.screenH - this.insetBottom - 12 - 24 - thickness / 2;
     this.drawGaugeLabel('BRAKE', x0 - 18, cy, 'right', GAUGE_COLORS.brakeFill);
     this.drawBarGauge(gauge, x0, cy, 0, length, thickness, time);
     this.drawGaugeLabel('TUCK', x0 + length + 18, cy, 'left', GAUGE_COLORS.tuckFill);

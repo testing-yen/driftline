@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 
 /** Which speed gauge the HUD draws. A prototype switch so variants can be compared on the phone. */
-export type GaugeStyle = 'side' | 'top' | 'rider' | 'off';
+export type GaugeStyle = 'side' | 'bottom' | 'rider' | 'off';
 
 /** Every position is a 0..1 fraction of the gauge range, 0 .. full-tuck speed. */
 export interface GaugeModel {

@@ -2,6 +2,7 @@ import './style.css';
 import { Game } from './game/game.js';
 import { Renderer } from './game/renderer.js';
 import { SessionBoard } from './game/session.js';
+import { loadReach } from './input/boardReach.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
@@ -144,7 +145,7 @@ function boot(): void {
 
   let input: TiltInput;
   if (isTouchDevice) {
-    input = new DeviceMotionTiltInput();
+    input = new DeviceMotionTiltInput(loadReach());
   } else {
     const kb = new KeyboardTiltInput();
     kb.attach(canvas);

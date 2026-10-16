@@ -8,11 +8,30 @@
  * Implementations: KeyboardTiltInput (desktop dev/testing) and
  * DeviceMotionTiltInput (real phone IMU on the board).
  */
+import type { BoardReach } from './boardReach.js';
 import type { TiltRange } from './tiltMath.js';
 
 export interface TiltSample {
   x: number;
   y: number;
+  /** The board's edge is (nearly) on the floor, so the rider is resting on it instead of planking. */
+  grounded: boolean;
+}
+
+/** Lean in degrees from neutral: x + right, y + forward. */
+export interface LeanDegrees {
+  x: number;
+  y: number;
+}
+
+/** Real board angles, for inputs that measure them. */
+export interface BoardAngles {
+  /** Calibrated, smoothed lean right now. */
+  readonly now: LeanDegrees;
+  /** Furthest lean per direction since the last reset. */
+  readonly range: TiltRange;
+  /** Normalizes every sample; replace it after measuring the board. */
+  reach: BoardReach;
 }
 
 export interface TiltInput {
@@ -30,11 +49,8 @@ export interface TiltInput {
   calibrate(): void;
   /** False while a calibrate() is still collecting neutral samples. */
   readonly calibrated: boolean;
-  /**
-   * Calibrated, smoothed lean in degrees (x: + right, y: + forward) and the
-   * furthest lean per direction; null when the input has no real angle (keyboard).
-   */
-  readonly angles: { readonly now: TiltSample; readonly range: TiltRange } | null;
+  /** Null when the input has no real angle (keyboard). */
+  readonly angles: BoardAngles | null;
   /** Advance time-based smoothing. Called once per frame by the game loop. */
   update(dt: number): void;
 }

@@ -24,8 +24,8 @@ export function applyDeadZone(value: number, deadZone: number): number {
 }
 
 /** Convert a degree-based dead zone to normalized units. */
-export function deadZoneToNormal(deadZoneDeg: number, maxTiltDeg: number): number {
-  return Math.max(0, Math.min(1, deadZoneDeg / maxTiltDeg));
+export function deadZoneToNormal(deadZoneDeg: number, fullLeanDeg: number): number {
+  return Math.max(0, Math.min(1, deadZoneDeg / fullLeanDeg));
 }
 
 /** Furthest lean seen in each direction since the last reset, in degrees from neutral. */

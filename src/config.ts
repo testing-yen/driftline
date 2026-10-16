@@ -18,10 +18,19 @@ export const CONFIG = {
   viewMargin: 40, // snow kept visible beyond each slope edge; the view zooms out to fit slope + margin on narrow screens
 
   /** Tilt input */
-  maxTiltDeg: 10, // tilt for full deflection; must sit inside the board's reach (~12-13° before the edge hits the floor) so riders never need to ground it
+  // Both fractions are of the board's reach (the lean at which its edge touches the floor,
+  // calibrated per board) and depend on the hardware; re-tune them for a different board or plank rig.
+  fullLeanFraction: 0.7, // full steer/tuck/brake here, so top speed never needs the edge on the floor (resting there would stop the plank workout)
+  groundedFraction: 0.9, // past this the edge is effectively on the floor, i.e. the rider is resting: tuck bonus off, "Lift the edge!" shown
   deadZoneDeg: 2, // ignore tilt smaller than this (1-3 deg recommended)
   lowPassAlpha: 0.22, // smoothing for IMU noise (~10 Hz feel at 60 fps)
   calibSamples: 60, // samples (~1s) used for per-session neutral calibration
+
+  /** Board reach calibration (Calibrate board flow) */
+  reachCaptureMinDeg: 8, // a push only counts once the lean passes this; below it the rider has not started pushing
+  reachHoldToleranceDeg: 1, // the lean must stay within this of where the hold started...
+  reachHoldMs: 1000, // ...for this long, so a bounce off the floor is not captured as the reach
+  reachLevelDeg: 4, // between directions every lean must drop below this before the next push arms
 
   /** Obstacles & gates */
   chunkHeight: 1000, // world-gen chunk height, px

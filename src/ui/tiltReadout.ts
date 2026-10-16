@@ -1,13 +1,11 @@
+import { leanToward, type LeanDirection } from '../input/boardReach.js';
 import type { TiltInput } from '../input/TiltInput.js';
-import type { TiltRange } from '../input/tiltMath.js';
 
-type Direction = keyof Pick<TiltRange, 'forward' | 'back' | 'left' | 'right'>;
-
-const ROWS: { dir: Direction; label: string; now: (x: number, y: number) => number }[] = [
-  { dir: 'forward', label: 'Fwd', now: (_x, y) => y },
-  { dir: 'back', label: 'Back', now: (_x, y) => -y },
-  { dir: 'left', label: 'Left', now: (x) => -x },
-  { dir: 'right', label: 'Right', now: (x) => x },
+const ROWS: { dir: LeanDirection; label: string }[] = [
+  { dir: 'forward', label: 'Fwd' },
+  { dir: 'back', label: 'Back' },
+  { dir: 'left', label: 'Left' },
+  { dir: 'right', label: 'Right' },
 ];
 
 /**
@@ -47,8 +45,8 @@ export function tiltReadout(input: TiltInput): HTMLElement | null {
     const angles = input.angles;
     if (!box.isConnected || !angles) return;
     const { x, y } = angles.now;
-    ROWS.forEach(({ dir, now }, i) => {
-      rows[i].cells[1].textContent = Math.max(0, now(x, y)).toFixed(1);
+    ROWS.forEach(({ dir }, i) => {
+      rows[i].cells[1].textContent = Math.max(0, leanToward(dir, x, y)).toFixed(1);
       rows[i].cells[2].textContent = angles.range[dir].toFixed(1);
     });
     requestAnimationFrame(update);

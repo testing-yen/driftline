@@ -28,6 +28,8 @@ export const CONFIG = {
   obstaclesPerChunk: 7, // trees/rocks per chunk
   gateSpacingY: 650, // vertical distance between slalom gates, px
   gateHalfWidth: 70, // half-width of a gate opening, px
+  gatePopupDuration: 0.9, // seconds the "+N" / miss mark stays visible
+  gatePopupRise: 40, // px the "+N" popup floats up while fading
 
   /** Chaser ("shadow beast") — the run timer */
   chaserTriggerDistance: 4500, // px travelled before the chaser appears (~17s in)

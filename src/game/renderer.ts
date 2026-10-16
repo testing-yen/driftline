@@ -78,6 +78,7 @@ export class Renderer {
     score: number,
     streak: number,
     phase: 'playing' | 'gameover',
+    time: number,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
@@ -103,7 +104,7 @@ export class Renderer {
     for (const gate of world.gates) {
       const gy = gate.y - camY;
       if (gy < -80 || gy > h + 80) continue;
-      this.drawGate(gate, gy);
+      this.drawGate(gate, gy, time);
     }
     for (const ob of world.obstacles) {
       const oy = ob.y - camY;
@@ -195,7 +196,7 @@ export class Renderer {
     ctx.fill();
   }
 
-  private drawGate(gate: Gate, screenY: number): void {
+  private drawGate(gate: Gate, screenY: number, time: number): void {
     const { ctx, w } = this;
     const cx = w / 2 + gate.centerX;
     const hw = gate.halfWidth;
@@ -209,11 +210,50 @@ export class Renderer {
       ctx.closePath();
       ctx.fill();
     };
-    const dim = gate.state === 'pending' ? 1 : 0.35;
-    ctx.globalAlpha = dim;
-    pole(cx - hw, '#d43a2f'); // left, red
-    pole(cx + hw, '#2f6fd4'); // right, blue
-    ctx.globalAlpha = 1;
+    ctx.save();
+    switch (gate.state) {
+      case 'pending':
+        pole(cx - hw, '#d43a2f'); // left, red
+        pole(cx + hw, '#2f6fd4'); // right, blue
+        break;
+      case 'cleared': {
+        ctx.globalAlpha = 0.75;
+        pole(cx - hw, '#2fa35a');
+        pole(cx + hw, '#2fa35a');
+        const t = (time - gate.resolvedAt) / CONFIG.gatePopupDuration;
+        if (t < 1) {
+          ctx.globalAlpha = 1 - t;
+          ctx.fillStyle = '#1f8a4a';
+          ctx.font = '700 28px system-ui, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`+${gate.points}`, cx, screenY - 14 - t * CONFIG.gatePopupRise);
+        }
+        break;
+      }
+      case 'missed': {
+        ctx.globalAlpha = 0.35;
+        pole(cx - hw, '#9aa5b4');
+        pole(cx + hw, '#9aa5b4');
+        const t = (time - gate.resolvedAt) / CONFIG.gatePopupDuration;
+        if (t < 1) {
+          const r = 12;
+          const my = screenY - 14;
+          ctx.globalAlpha = 1 - t;
+          ctx.strokeStyle = '#d43a2f';
+          ctx.lineWidth = 5;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(cx - r, my - r);
+          ctx.lineTo(cx + r, my + r);
+          ctx.moveTo(cx + r, my - r);
+          ctx.lineTo(cx - r, my + r);
+          ctx.stroke();
+        }
+        break;
+      }
+    }
+    ctx.restore();
   }
 
   private drawPlayer(x: number, y: number, player: PlayerState): void {

@@ -55,6 +55,13 @@ html, body {
   padding: 20px 28px;
 }
 
+/* The Calibrate board button pushes the menu just past a landscape phone's height. */
+@media (max-height: 420px) {
+  #ui .panel.menu {
+    padding-block: 10px;
+  }
+}
+
 #ui .panel h1 {
   margin: 0 0 8px;
   font-size: 34px;

@@ -7,8 +7,8 @@ import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
-import { showGameOver } from './ui/gameOverPanel.js';
 import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
+import { showGameOver } from './ui/gameOverPanel.js';
 import { gaugeSwitch } from './ui/gaugeSwitch.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 

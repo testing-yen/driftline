@@ -4,7 +4,7 @@ import type { TiltInput, TiltSample } from './TiltInput.js';
  * Desktop development input: arrow keys / WASD and pointer drag simulate tilt.
  *
  * This is how ~90% of development and tuning happens — no planking required.
- * ArrowLeft/Right = steer, ArrowUp = tuck (lean forward), ArrowDown = brake.
+ * ArrowLeft/Right = steer, ArrowUp = lean forward (faster); let go to slow down.
  * Dragging on the canvas also works: drag right/down from the press point.
  */
 export class KeyboardTiltInput implements TiltInput {

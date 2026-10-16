@@ -23,14 +23,14 @@ describe('Chaser', () => {
     expect(c.y).toBe(5000 - CONFIG.chaserSpawnBehind);
   });
 
-  it('catches a coasting player (slower than the chaser)', () => {
+  it('catches a player on a level board (slower than the chaser)', () => {
     const c = new Chaser();
     c.maybeActivate(CONFIG.chaserTriggerDistance, 0, 5000);
-    // Player coasts at base speed; chaser is faster -> gap must close.
+    // A level board rides at flatSpeed; the chaser is faster -> gap must close.
     let playerY = 5000;
     let caught = false;
     for (let i = 0; i < 60 * 60 && !caught; i += 1) {
-      playerY += CONFIG.baseSpeed * DT;
+      playerY += CONFIG.flatSpeed * DT;
       c.update(DT, 0, playerY);
       caught = c.caught(0, playerY);
     }
@@ -41,7 +41,7 @@ describe('Chaser', () => {
     const c = new Chaser();
     c.maybeActivate(CONFIG.chaserTriggerDistance, 0, 5000);
     let playerY = 5000;
-    const tuckSpeed = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
+    const tuckSpeed = CONFIG.fullLeanSpeed;
     let caught = false;
     // 10 seconds of full tuck: the gap should still be open.
     for (let i = 0; i < 600 && !caught; i += 1) {
@@ -56,7 +56,7 @@ describe('Chaser', () => {
     const c = new Chaser();
     c.maybeActivate(CONFIG.chaserTriggerDistance, 0, 5000);
     let playerY = 5000;
-    const tuckSpeed = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
+    const tuckSpeed = CONFIG.fullLeanSpeed;
     let caught = false;
     for (let i = 0; i < 60 * 300 && !caught; i += 1) {
       playerY += tuckSpeed * DT;
@@ -69,7 +69,7 @@ describe('Chaser', () => {
   it('a last-second sidestep cannot escape', () => {
     const c = new Chaser();
     const half = CONFIG.worldHalfWidth;
-    const tuckSpeed = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
+    const tuckSpeed = CONFIG.fullLeanSpeed;
     let playerX = 0;
     let playerY = CONFIG.chaserTriggerDistance;
     c.maybeActivate(playerY, playerX, playerY);

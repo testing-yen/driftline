@@ -59,7 +59,7 @@ function showMenu(input: TiltInput): void {
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
     ? 'Mount the phone in portrait, hold the board level, then tap Start. New board? Tap Calibrate board first. If your neutral drifts, tap ⏸ and Re\u2011center.'
-    : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
+    : 'Arrows / WASD or drag to steer. Hold Up to lean forward (faster); let go to slow down.';
 
   const startBtn = document.createElement('button');
   startBtn.className = 'btn';

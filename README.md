@@ -5,7 +5,7 @@ proof-of-concept for the **open balance-board fitness platform** idea: a wobble
 board plus the phone in your pocket becomes a full-body game controller.
 
 You are a rider carving down an endless slope. Tilt the board left and right to
-steer, lean forward to tuck for speed, lean back to brake. Thread slalom gates
+steer, lean forward for speed, level out to slow down. Thread slalom gates
 for points, dodge pines and rocks — and keep an eye uphill: after a while, a
 shadow beast picks up your scent, and it *will* catch you. A run lasts about
 60–120 seconds, which is exactly one good plank.
@@ -93,12 +93,16 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
    Until you calibrate, the game uses angles measured on one wobble board
    (`DEFAULT_REACH` in `src/input/boardReach.ts`).
 
-   Full speed and full steering arrive at 70% of each edge's floor angle, so
-   you reach them while planking, not while resting on the edge. Past 90%
-   the edge is effectively on the floor: tuck stops adding speed and the game
-   shows **Lift the edge!**. Both fractions depend on the hardware; tune
-   `fullLeanFraction` and `groundedFraction` in `src/config.ts` for another
-   board or a plank rig.
+   Speed comes from leaning **forward** only (leaning back is nearly
+   impossible in a plank): a level board is the slowest, and full speed
+   arrives at 70% of the forward edge's floor angle, so you reach it while
+   planking, not while resting on the edge. Steering uses the same 70% of the
+   left and right edges. Past 90% of any edge the board is effectively on the
+   floor: the game shows **Lift the edge!** and gives no lean bonus, and if the
+   edge stays down for more than half a second the rider slows to half the
+   level-board speed. All of these depend on the hardware; tune
+   `fullLeanFraction`, `groundedFraction`, `groundedGraceS` and
+   `restingSpeedFactor` in `src/config.ts` for another board or a plank rig.
 6. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
    hold the board level, and tap **Re-center**. Reloading would wipe the
    session board.

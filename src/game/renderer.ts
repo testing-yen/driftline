@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
-import type { GaugeModel, GaugeStyle } from './speedGauge.js';
+import type { EdgeContact, GaugeModel, GaugeStyle } from './speedGauge.js';
 import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
@@ -35,15 +35,15 @@ const PAUSE_BUTTON_CLEARANCE = PAUSE_BUTTON.size + PAUSE_BUTTON.margin + 16;
 const GAUGE_COLORS = {
   track: 'rgba(14,26,43,0.82)',
   outline: '#ffffff',
-  brakeTint: 'rgba(77,160,255,0.28)',
-  tuckTint: 'rgba(255,170,90,0.26)',
-  brakeFill: '#4da0ff',
-  tuckFill: '#ff922b',
+  slowTint: 'rgba(77,160,255,0.28)',
+  fastTint: 'rgba(255,170,90,0.26)',
+  slowFill: '#4da0ff',
+  fastFill: '#ff922b',
   ink: '#22303f',
   chaser: '#ff3b3b',
   beast: '#1e1428',
 };
-/** Gauge fraction from which the warning glow shows once the chaser passes full tuck. */
+/** Gauge fraction from which the warning glow shows once the chaser passes full lean. */
 const OVER_MAX_GLOW_FROM = 0.8;
 
 /** Half the NEW BEST! banner's height at its largest pop-in scale, plus its outline. */
@@ -148,7 +148,7 @@ export class Renderer {
     best: number | null,
     newBestAt: number | null,
     gauge: GaugeModel,
-    grounded: boolean,
+    contact: EdgeContact,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
@@ -203,7 +203,7 @@ export class Renderer {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
       if (t >= 0 && t < 1) this.drawNewBestBanner(t);
     }
-    if (phase === 'playing' && grounded) this.drawGroundedWarning(rider, time);
+    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
   }
 
   private drawSnow(player: PlayerState): void {
@@ -220,7 +220,7 @@ export class Renderer {
     ctx.fillRect(w / 2 - half - 26, -20, 18, h + 40);
     ctx.fillRect(w / 2 + half + 8, -20, 18, h + 40);
 
-    // Speed lines, denser when tucking.
+    // Speed lines, denser at speed.
     const lines = Math.floor(player.speed / 60);
     ctx.strokeStyle = 'rgba(140,170,210,0.35)';
     ctx.lineWidth = 3;
@@ -430,9 +430,9 @@ export class Renderer {
     // Downhill is down the screen, so the bar stops above the rider to keep the slope ahead clear.
     const bottom = rider.y - 30;
     const labelRight = cx - thickness / 2 - 30;
-    this.drawGaugeLabel('TUCK', labelRight, top, 'right', GAUGE_COLORS.tuckFill);
+    this.drawGaugeLabel('FAST', labelRight, top, 'right', GAUGE_COLORS.fastFill);
     this.drawBarGauge(gauge, cx, bottom, -Math.PI / 2, bottom - top, thickness, time);
-    this.drawGaugeLabel('BRAKE', labelRight, bottom, 'right', GAUGE_COLORS.brakeFill);
+    this.drawGaugeLabel('SLOW', labelRight, bottom, 'right', GAUGE_COLORS.slowFill);
   }
 
   /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */
@@ -450,9 +450,9 @@ export class Renderer {
     const x0 = centre - length / 2;
     // Room below the bar for the chaser marker, clear of the home indicator.
     const cy = this.screenH - this.insetBottom - 12 - 24 - thickness / 2;
-    this.drawGaugeLabel('BRAKE', x0 - 18, cy, 'right', GAUGE_COLORS.brakeFill);
+    this.drawGaugeLabel('SLOW', x0 - 18, cy, 'right', GAUGE_COLORS.slowFill);
     this.drawBarGauge(gauge, x0, cy, 0, length, thickness, time);
-    this.drawGaugeLabel('TUCK', x0 + length + 18, cy, 'left', GAUGE_COLORS.tuckFill);
+    this.drawGaugeLabel('FAST', x0 + length + 18, cy, 'left', GAUGE_COLORS.fastFill);
   }
 
   /**
@@ -471,7 +471,7 @@ export class Renderer {
     const { ctx } = this;
     const half = thickness / 2;
     const pad = 5;
-    const cruiseX = gauge.cruise * length;
+    const flatX = gauge.flat * length;
     const speedX = gauge.speed * length;
     ctx.save();
     ctx.translate(x0, y0);
@@ -483,15 +483,15 @@ export class Renderer {
     ctx.fill();
     ctx.save();
     ctx.clip();
-    ctx.fillStyle = GAUGE_COLORS.brakeTint;
-    ctx.fillRect(0, -half, cruiseX, thickness);
-    ctx.fillStyle = GAUGE_COLORS.tuckTint;
-    ctx.fillRect(cruiseX, -half, length - cruiseX, thickness);
-    ctx.fillStyle = GAUGE_COLORS.brakeFill;
-    ctx.fillRect(0, -half + pad, Math.min(speedX, cruiseX), thickness - 2 * pad);
-    if (speedX > cruiseX) {
-      ctx.fillStyle = GAUGE_COLORS.tuckFill;
-      ctx.fillRect(cruiseX, -half + pad, speedX - cruiseX, thickness - 2 * pad);
+    ctx.fillStyle = GAUGE_COLORS.slowTint;
+    ctx.fillRect(0, -half, flatX, thickness);
+    ctx.fillStyle = GAUGE_COLORS.fastTint;
+    ctx.fillRect(flatX, -half, length - flatX, thickness);
+    ctx.fillStyle = GAUGE_COLORS.slowFill;
+    ctx.fillRect(0, -half + pad, Math.min(speedX, flatX), thickness - 2 * pad);
+    if (speedX > flatX) {
+      ctx.fillStyle = GAUGE_COLORS.fastFill;
+      ctx.fillRect(flatX, -half + pad, speedX - flatX, thickness - 2 * pad);
     }
     if (gauge.chaserOverMax) {
       ctx.fillStyle = `rgba(255,59,59,${0.35 + 0.45 * pulse(time)})`;
@@ -504,7 +504,7 @@ export class Renderer {
     this.strokeGaugeOutline(gauge, time);
 
     ctx.fillStyle = GAUGE_COLORS.outline;
-    ctx.fillRect(cruiseX - 2.5, -half - 5, 5, thickness + 10);
+    ctx.fillRect(flatX - 2.5, -half - 5, 5, thickness + 10);
 
     if (gauge.chaser !== null) {
       const x = Math.max(2.5, Math.min(length - 2.5, gauge.chaser * length));
@@ -571,12 +571,12 @@ export class Renderer {
     this.strokeGaugeOutline(gauge, time);
 
     ctx.lineCap = 'butt';
-    arc(0, gauge.cruise, GAUGE_COLORS.brakeTint, band);
-    arc(gauge.cruise, 1, GAUGE_COLORS.tuckTint, band);
-    arc(0, Math.min(gauge.speed, gauge.cruise), GAUGE_COLORS.brakeFill, band - 4);
-    arc(gauge.cruise, gauge.speed, GAUGE_COLORS.tuckFill, band - 4);
+    arc(0, gauge.flat, GAUGE_COLORS.slowTint, band);
+    arc(gauge.flat, 1, GAUGE_COLORS.fastTint, band);
+    arc(0, Math.min(gauge.speed, gauge.flat), GAUGE_COLORS.slowFill, band - 4);
+    arc(gauge.flat, gauge.speed, GAUGE_COLORS.fastFill, band - 4);
     if (gauge.chaserOverMax) arc(OVER_MAX_GLOW_FROM, 1, `rgba(255,59,59,${0.35 + 0.45 * pulse(time)})`, band);
-    radial(gauge.cruise, r - band / 2 - 2, r + band / 2 + 2, GAUGE_COLORS.outline, 4);
+    radial(gauge.flat, r - band / 2 - 2, r + band / 2 + 2, GAUGE_COLORS.outline, 4);
 
     if (gauge.chaser !== null) {
       radial(gauge.chaser, r - band / 2 - 9, r + band / 2 + 2, GAUGE_COLORS.chaser, 5);
@@ -696,7 +696,7 @@ export class Renderer {
     };
   }
 
-  private drawGroundedWarning(rider: ScreenPoint, time: number): void {
+  private drawGroundedWarning(rider: ScreenPoint, time: number, contact: Exclude<EdgeContact, 'off'>): void {
     const { ctx } = this;
     const { text, font, height, padX } = GROUNDED_WARNING;
     ctx.save();
@@ -707,7 +707,8 @@ export class Renderer {
     ctx.roundRect(x - width / 2, y - height / 2, width, height, height / 2);
     ctx.fillStyle = '#d62828';
     ctx.fill();
-    ctx.lineWidth = 3 + 3 * pulse(time);
+    // Resting on the edge is already costing speed, so the warning pulses harder and faster.
+    ctx.lineWidth = contact === 'resting' ? 4 + 6 * pulse(time * 3) : 3 + 3 * pulse(time);
     ctx.strokeStyle = '#22303f';
     ctx.stroke();
     ctx.fillStyle = '#ffffff';

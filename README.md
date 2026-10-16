@@ -20,7 +20,8 @@ whole thing in an afternoon and start tuning.
 
 ## Run it locally
 
-Requirements: Node 20+.
+Requirements: Node 22 (pinned in `.nvmrc`, which CI also reads; with nvm, run
+`nvm use`).
 
 ```bash
 npm install
@@ -29,6 +30,7 @@ npm test           # unit tests (Vitest)
 npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
 npm run build      # production build -> dist/
+npm run icons      # regenerate public/icons/*.png after editing scripts/make-icons.mjs
 ```
 
 ## Test it on iPhone

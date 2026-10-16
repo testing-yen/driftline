@@ -2,7 +2,7 @@ import type { GaugeStyle } from '../game/speedGauge.js';
 
 const OPTIONS: Record<GaugeStyle, { label: string; name: string }> = {
   side: { label: 'A', name: 'Side bar' },
-  bottom: { label: 'B', name: 'Bottom bar' },
+  top: { label: 'B', name: 'Top bar' },
   rider: { label: 'C', name: 'Dial by the rider' },
   off: { label: 'Off', name: 'No gauge' },
 };

@@ -111,7 +111,12 @@ function startGame(input: TiltInput): void {
   game = new Game(renderer, input, board.bestScore);
   game.onGameOverCallback((run) => {
     const outcome = board.record(run);
-    showGameOver({ ui, run, outcome, board, input, onRideAgain: () => startGame(input) });
+    const onRideAgain = () => {
+      // The OS drops the wake lock whenever the page is hidden, including on this screen.
+      void requestWakeLock();
+      startGame(input);
+    };
+    showGameOver({ ui, run, outcome, board, input, onRideAgain });
   });
   game.start();
 }

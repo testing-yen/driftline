@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import type { TiltSample } from '../input/TiltInput.js';
 
 /** Which speed gauge the HUD draws. A prototype switch so variants can be compared on the phone. */
 export type GaugeStyle = 'side' | 'bottom' | 'rider' | 'off';
@@ -20,18 +21,20 @@ export interface GaugeModel {
 /**
  * Speed the rider eases toward for a forward/back lean in [-1, 1]:
  * full back lean brakes, neutral coasts at baseSpeed, full forward lean tucks.
+ * A grounded board gets no tuck, so resting on the edge never pays; braking still works.
  */
-export function leanTargetSpeed(tiltY: number, stumbling: boolean): number {
+export function leanTargetSpeed(lean: Pick<TiltSample, 'y' | 'grounded'>, stumbling: boolean): number {
+  const y = lean.grounded ? Math.min(0, lean.y) : lean.y;
   const factor =
-    tiltY >= 0
-      ? 1 + tiltY * (CONFIG.tuckMultiplier - 1)
-      : 1 + tiltY * (1 - CONFIG.brakeMultiplier);
+    y >= 0
+      ? 1 + y * (CONFIG.tuckMultiplier - 1)
+      : 1 + y * (1 - CONFIG.brakeMultiplier);
   const speed = CONFIG.baseSpeed * factor;
   return stumbling ? speed * CONFIG.stumbleSlowFactor : speed;
 }
 
-export const GAUGE_MAX_SPEED = leanTargetSpeed(1, false);
-const CRUISE = leanTargetSpeed(0, false) / GAUGE_MAX_SPEED;
+export const GAUGE_MAX_SPEED = leanTargetSpeed({ y: 1, grounded: false }, false);
+const CRUISE = leanTargetSpeed({ y: 0, grounded: false }, false) / GAUGE_MAX_SPEED;
 
 export function gaugeModel(input: {
   speed: number;

@@ -4,39 +4,56 @@ import { gaugeModel, leanTargetSpeed } from '../src/game/speedGauge.js';
 
 const MAX = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
 const idle = { speed: CONFIG.baseSpeed, target: CONFIG.baseSpeed, chaserSpeed: null };
+const lean = (y: number, grounded = false) => ({ y, grounded });
 
 describe('leanTargetSpeed', () => {
   it('coasts at baseSpeed, tucks to baseSpeed x tuck, brakes to baseSpeed x brake', () => {
-    expect(leanTargetSpeed(0, false)).toBeCloseTo(CONFIG.baseSpeed);
-    expect(leanTargetSpeed(1, false)).toBeCloseTo(CONFIG.baseSpeed * CONFIG.tuckMultiplier);
-    expect(leanTargetSpeed(-1, false)).toBeCloseTo(CONFIG.baseSpeed * CONFIG.brakeMultiplier);
+    expect(leanTargetSpeed(lean(0), false)).toBeCloseTo(CONFIG.baseSpeed);
+    expect(leanTargetSpeed(lean(1), false)).toBeCloseTo(CONFIG.baseSpeed * CONFIG.tuckMultiplier);
+    expect(leanTargetSpeed(lean(-1), false)).toBeCloseTo(CONFIG.baseSpeed * CONFIG.brakeMultiplier);
   });
 
   it('is linear between neutral and each end', () => {
-    expect(leanTargetSpeed(0.5, false)).toBeCloseTo(CONFIG.baseSpeed * (1 + 0.5 * (CONFIG.tuckMultiplier - 1)));
-    expect(leanTargetSpeed(-0.5, false)).toBeCloseTo(CONFIG.baseSpeed * (1 - 0.5 * (1 - CONFIG.brakeMultiplier)));
+    expect(leanTargetSpeed(lean(0.5), false)).toBeCloseTo(CONFIG.baseSpeed * (1 + 0.5 * (CONFIG.tuckMultiplier - 1)));
+    expect(leanTargetSpeed(lean(-0.5), false)).toBeCloseTo(CONFIG.baseSpeed * (1 - 0.5 * (1 - CONFIG.brakeMultiplier)));
+  });
+
+  it('gives a grounded board no tuck: full forward lean only cruises', () => {
+    expect(leanTargetSpeed(lean(1, true), false)).toBeCloseTo(CONFIG.baseSpeed);
+    expect(leanTargetSpeed(lean(0.5, true), false)).toBeCloseTo(CONFIG.baseSpeed);
+  });
+
+  it('still brakes while grounded', () => {
+    expect(leanTargetSpeed(lean(-1, true), false)).toBeCloseTo(CONFIG.baseSpeed * CONFIG.brakeMultiplier);
+    expect(leanTargetSpeed(lean(-0.5, true), false)).toBeCloseTo(leanTargetSpeed(lean(-0.5), false));
   });
 
   it('slows the target by stumbleSlowFactor while stumbling', () => {
-    expect(leanTargetSpeed(1, true)).toBeCloseTo(leanTargetSpeed(1, false) * CONFIG.stumbleSlowFactor);
-    expect(leanTargetSpeed(1, true)).toBeLessThan(leanTargetSpeed(1, false));
+    expect(leanTargetSpeed(lean(1), true)).toBeCloseTo(leanTargetSpeed(lean(1), false) * CONFIG.stumbleSlowFactor);
+    expect(leanTargetSpeed(lean(1), true)).toBeLessThan(leanTargetSpeed(lean(1), false));
   });
 });
 
 describe('gaugeModel', () => {
   it('puts a full forward lean at the top of the gauge', () => {
-    expect(gaugeModel({ ...idle, target: leanTargetSpeed(1, false) }).target).toBeCloseTo(1);
+    expect(gaugeModel({ ...idle, target: leanTargetSpeed(lean(1), false) }).target).toBeCloseTo(1);
   });
 
   it('puts a neutral lean on the cruise mark, at baseSpeed / max speed', () => {
-    const g = gaugeModel({ ...idle, target: leanTargetSpeed(0, false) });
+    const g = gaugeModel({ ...idle, target: leanTargetSpeed(lean(0), false) });
     expect(g.target).toBeCloseTo(g.cruise);
     expect(g.cruise).toBeCloseTo(CONFIG.baseSpeed / MAX);
   });
 
+  it('shows a grounded full forward lean on the cruise mark, not at the top', () => {
+    const g = gaugeModel({ ...idle, target: leanTargetSpeed(lean(1, true), false) });
+    expect(g.target).toBeCloseTo(g.cruise);
+    expect(g.target).toBeLessThan(0.9);
+  });
+
   it('shows a stumbling target below the same lean without a stumble', () => {
-    const steady = gaugeModel({ ...idle, target: leanTargetSpeed(1, false) });
-    const stumbling = gaugeModel({ ...idle, target: leanTargetSpeed(1, true) });
+    const steady = gaugeModel({ ...idle, target: leanTargetSpeed(lean(1), false) });
+    const stumbling = gaugeModel({ ...idle, target: leanTargetSpeed(lean(1), true) });
     expect(stumbling.target).toBeCloseTo(CONFIG.stumbleSlowFactor);
     expect(stumbling.target).toBeLessThan(steady.target);
   });

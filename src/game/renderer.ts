@@ -46,6 +46,19 @@ const GAUGE_COLORS = {
 /** Gauge fraction from which the warning glow shows once the chaser passes full tuck. */
 const OVER_MAX_GLOW_FROM = 0.8;
 
+/** Half the NEW BEST! banner's height at its largest pop-in scale, plus its outline. */
+const NEW_BEST_HALF_HEIGHT = 40;
+/** Room kept above the rider's centre: the rider plus the "rider" gauge dial beside them. */
+const RIDER_CLEARANCE = 70;
+const GROUNDED_WARNING = {
+  text: 'Lift the edge!',
+  font: '900 30px system-ui, sans-serif',
+  height: 52,
+  padX: 22,
+  /** Gap kept from the screen edge and the side gauge. */
+  gap: 12,
+};
+
 /** Rider centre in HUD screen px. */
 interface ScreenPoint {
   x: number;
@@ -135,9 +148,11 @@ export class Renderer {
     best: number | null,
     newBestAt: number | null,
     gauge: GaugeModel,
+    grounded: boolean,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
+    const rider = { x: (w / 2 + player.x) * this.scale, y: playerScreenY * this.scale };
     const camY = player.y - playerScreenY;
 
     let sx = 0;
@@ -181,7 +196,6 @@ export class Renderer {
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (this.gaugeStyle !== 'off') {
-      const rider = { x: (w / 2 + player.x) * this.scale, y: playerScreenY * this.scale };
       this.gaugeDrawers[this.gaugeStyle](gauge, rider, time);
     }
     this.drawHud(score, streak, player, phase, best);
@@ -189,6 +203,7 @@ export class Renderer {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
       if (t >= 0 && t < 1) this.drawNewBestBanner(t);
     }
+    if (phase === 'playing' && grounded) this.drawGroundedWarning(rider, time);
   }
 
   private drawSnow(player: PlayerState): void {
@@ -410,8 +425,7 @@ export class Renderer {
   /** A: vertical bar under the pause button, up = faster. */
   private drawSideGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
     const thickness = 32;
-    // Leaves room right of the bar for the chaser marker.
-    const cx = this.screenW - this.insetRight - 46;
+    const cx = this.sideGaugeX();
     const top = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size + 16;
     // Downhill is down the screen, so the bar stops above the rider to keep the slope ahead clear.
     const bottom = rider.y - 30;
@@ -419,6 +433,11 @@ export class Renderer {
     this.drawGaugeLabel('TUCK', labelRight, top, 'right', GAUGE_COLORS.tuckFill);
     this.drawBarGauge(gauge, cx, bottom, -Math.PI / 2, bottom - top, thickness, time);
     this.drawGaugeLabel('BRAKE', labelRight, bottom, 'right', GAUGE_COLORS.brakeFill);
+  }
+
+  /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */
+  private sideGaugeX(): number {
+    return this.screenW - this.insetRight - 46;
   }
 
   /** B: horizontal bar at the bottom centre, right = faster. */
@@ -648,15 +667,64 @@ export class Renderer {
     ctx.restore();
   }
 
+  /** Below the top-left HUD block and well above the rider at 62% height. */
+  private newBestBannerY(): number {
+    return Math.max(160, this.screenH * 0.26);
+  }
+
+  /**
+   * Centre of the "Lift the edge!" pill. It goes between the NEW BEST! banner
+   * and the rider when that gap fits it (portrait), otherwise in the top row
+   * between the score and the streak, level with the pause button (landscape).
+   */
+  private groundedWarningCentre(rider: ScreenPoint, width: number): ScreenPoint {
+    const { height, gap } = GROUNDED_WARNING;
+    const bandTop = this.newBestBannerY() + NEW_BEST_HALF_HEIGHT;
+    const bandBottom = rider.y - RIDER_CLEARANCE;
+    if (bandBottom - bandTop < height + 2 * gap) {
+      return {
+        x: (this.insetLeft + this.screenW - this.insetRight) / 2,
+        y: this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size / 2,
+      };
+    }
+    const left = this.insetLeft + gap;
+    // The side gauge's target chevron reaches 40px left of its centre line.
+    const right = this.gaugeStyle === 'side' ? this.sideGaugeX() - 40 - gap : this.screenW - this.insetRight - gap;
+    return {
+      x: Math.max(left + width / 2, (left + right) / 2),
+      y: (bandTop + bandBottom) / 2,
+    };
+  }
+
+  private drawGroundedWarning(rider: ScreenPoint, time: number): void {
+    const { ctx } = this;
+    const { text, font, height, padX } = GROUNDED_WARNING;
+    ctx.save();
+    ctx.font = font;
+    const width = ctx.measureText(text).width + 2 * padX;
+    const { x, y } = this.groundedWarningCentre(rider, width);
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, height / 2);
+    ctx.fillStyle = '#d62828';
+    ctx.fill();
+    ctx.lineWidth = 3 + 3 * pulse(time);
+    ctx.strokeStyle = '#22303f';
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 1);
+    ctx.restore();
+  }
+
   /** t runs 0..1 over the banner's lifetime: pop in, hold, fade out. */
   private drawNewBestBanner(t: number): void {
-    const { ctx, screenW: w, screenH: h } = this;
+    const { ctx, screenW: w } = this;
     const grow = Math.min(1, t / 0.15);
     const scale = 0.6 + 0.4 * grow + 0.15 * Math.sin(grow * Math.PI);
     const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
     const cx = (this.insetLeft + w - this.insetRight) / 2;
-    // Below the top-left HUD block and well above the rider at 62% height.
-    const cy = Math.max(160, h * 0.26);
+    const cy = this.newBestBannerY();
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(cx, cy);

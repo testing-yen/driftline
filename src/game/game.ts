@@ -22,6 +22,8 @@ export class Game {
   private chaser = new Chaser();
   /** Speed the current lean is easing toward, kept for the speed gauge. */
   private targetSpeed: number = CONFIG.baseSpeed;
+  /** Latest sample's grounded flag, for the "Lift the edge!" warning. */
+  private grounded = false;
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
@@ -104,7 +106,7 @@ export class Game {
       target: this.targetSpeed,
       chaserSpeed: this.chaser.active ? this.chaser.speed : null,
     });
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge);
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.grounded);
   }
 
   private reset(): void {
@@ -112,6 +114,7 @@ export class Game {
     this.world = new World(Date.now() % 2147483647);
     this.chaser.reset();
     this.targetSpeed = CONFIG.baseSpeed;
+    this.grounded = false;
     this.score = 0;
     this.streak = 0;
     this.gatesCleared = 0;
@@ -129,7 +132,8 @@ export class Game {
     const tilt = this.input.sample();
 
     const stumbling = this.player.stumbleTimer > 0;
-    this.targetSpeed = leanTargetSpeed(tilt.y, stumbling);
+    this.grounded = tilt.grounded;
+    this.targetSpeed = leanTargetSpeed(tilt, stumbling);
     if (stumbling) this.player.stumbleTimer -= dt;
     this.player.speed += (this.targetSpeed - this.player.speed) * Math.min(1, dt * 6);
 

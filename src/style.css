@@ -333,8 +333,10 @@ html, body {
 
 #ui .panel.with-readout {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 28px;
+  gap: 16px 28px;
   max-width: min(820px, 94vw);
 }
 

@@ -16,3 +16,8 @@ export function scoreForGate(streak: number): number {
 export function applyStumblePenalty(score: number): number {
   return Math.max(0, score - CONFIG.stumblePenalty);
 }
+
+/** True only on the frame the score first goes strictly above a non-null best. */
+export function passedBest(prevScore: number, score: number, best: number | null): boolean {
+  return best !== null && prevScore <= best && score > best;
+}

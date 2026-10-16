@@ -9,6 +9,10 @@ import { circlesCollide } from './collisions.js';
  * players get caught; tucking outruns it for a while, but its acceleration
  * guarantees the run ends in roughly 60-120 seconds — a natural session cap
  * matched to plank endurance.
+ *
+ * It never moves past the player's y: once level it runs alongside and keeps
+ * homing laterally, so a sidestep only delays the catch until the slope wall
+ * corners the player.
  */
 export class Chaser {
   active = false;
@@ -25,10 +29,10 @@ export class Chaser {
     this.speed = CONFIG.chaserSpeed;
   }
 
-  update(dt: number, playerX: number): void {
+  update(dt: number, playerX: number, playerY: number): void {
     if (!this.active) return;
     this.speed += CONFIG.chaserAccel * dt;
-    this.y += this.speed * dt;
+    this.y = Math.min(this.y + this.speed * dt, playerY);
     // Limited lateral homing — it drifts toward the player's line.
     const dx = playerX - this.x;
     const maxStep = CONFIG.chaserTurnSpeed * dt;

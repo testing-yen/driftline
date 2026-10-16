@@ -4,8 +4,8 @@ import { Chaser } from '../src/game/chaser.js';
 
 const DT = 1 / 60;
 
-function runFrames(chaser: Chaser, frames: number, playerX: number): void {
-  for (let i = 0; i < frames; i += 1) chaser.update(DT, playerX);
+function runFrames(chaser: Chaser, frames: number, playerX: number, playerY: number): void {
+  for (let i = 0; i < frames; i += 1) chaser.update(DT, playerX, playerY);
 }
 
 describe('Chaser', () => {
@@ -31,7 +31,7 @@ describe('Chaser', () => {
     let caught = false;
     for (let i = 0; i < 60 * 60 && !caught; i += 1) {
       playerY += CONFIG.baseSpeed * DT;
-      c.update(DT, 0);
+      c.update(DT, 0, playerY);
       caught = c.caught(0, playerY);
     }
     expect(caught).toBe(true);
@@ -46,7 +46,7 @@ describe('Chaser', () => {
     // 10 seconds of full tuck: the gap should still be open.
     for (let i = 0; i < 600 && !caught; i += 1) {
       playerY += tuckSpeed * DT;
-      c.update(DT, 0);
+      c.update(DT, 0, playerY);
       caught = c.caught(0, playerY);
     }
     expect(caught).toBe(false);
@@ -60,17 +60,45 @@ describe('Chaser', () => {
     let caught = false;
     for (let i = 0; i < 60 * 300 && !caught; i += 1) {
       playerY += tuckSpeed * DT;
-      c.update(DT, 0);
+      c.update(DT, 0, playerY);
       caught = c.caught(0, playerY);
     }
     expect(caught).toBe(true);
+  });
+
+  it('a last-second sidestep cannot escape', () => {
+    const c = new Chaser();
+    const half = CONFIG.worldHalfWidth;
+    const tuckSpeed = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
+    let playerX = 0;
+    let playerY = CONFIG.chaserTriggerDistance;
+    c.maybeActivate(playerY, playerX, playerY);
+    let dir = 0;
+    let maxOvertake = -Infinity;
+    let caught = false;
+    for (let i = 0; i < 60 * 300 && !caught; i += 1) {
+      const gap = playerY - c.y;
+      if (c.active && gap >= 0 && gap <= 250) {
+        if (dir === 0) dir = playerX >= c.x ? 1 : -1;
+        if (playerX * dir >= half) dir = -dir;
+        playerX = Math.max(-half, Math.min(half, playerX + dir * CONFIG.steerSpeed * DT));
+      } else {
+        dir = 0;
+      }
+      playerY += tuckSpeed * DT;
+      c.update(DT, playerX, playerY);
+      maxOvertake = Math.max(maxOvertake, c.y - playerY);
+      caught = c.caught(playerX, playerY);
+    }
+    expect(caught).toBe(true);
+    expect(maxOvertake).toBeLessThanOrEqual(0);
   });
 
   it('homes laterally toward the player within its turn limit', () => {
     const c = new Chaser();
     c.maybeActivate(CONFIG.chaserTriggerDistance, 300, 5000);
     const startX = c.x;
-    runFrames(c, 60, -300);
+    runFrames(c, 60, -300, Number.MAX_VALUE);
     expect(c.x).toBeLessThan(startX);
     // One second of turning (260 px) cannot cover the whole 600px gap.
     expect(c.x).toBeGreaterThan(-300);

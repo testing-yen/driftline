@@ -151,7 +151,7 @@ export class Game {
 
     // Chaser.
     this.chaser.maybeActivate(this.player.y, this.player.x, this.player.y);
-    this.chaser.update(dt, this.player.x);
+    this.chaser.update(dt, this.player.x, this.player.y);
     if (this.chaser.caught(this.player.x, this.player.y)) {
       this.phase = 'gameover';
       this.onGameOver?.();

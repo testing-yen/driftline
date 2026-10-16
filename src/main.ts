@@ -1,11 +1,13 @@
 import './style.css';
 import { Game } from './game/game.js';
+import { Renderer } from './game/renderer.js';
 import { SessionBoard } from './game/session.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ui = document.getElementById('ui') as HTMLDivElement;
@@ -13,15 +15,17 @@ const ui = document.getElementById('ui') as HTMLDivElement;
 const isTouchDevice =
   'ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0;
 
-// Outlives every Game: each restart builds a fresh one.
+// Outlive every Game: each restart builds a fresh one.
 const board = new SessionBoard();
+const renderer = new Renderer(canvas);
 let game: Game | null = null;
-let wakeLock: { release(): Promise<void> } | null = null;
+let wakeLock: WakeLockSentinel | null = null;
 
 async function requestWakeLock(): Promise<void> {
+  if (wakeLock && !wakeLock.released) return;
   try {
     const nav = navigator as Navigator & {
-      wakeLock?: { request(type: 'screen'): Promise<{ release(): Promise<void> }> };
+      wakeLock?: { request(type: 'screen'): Promise<WakeLockSentinel> };
     };
     if (nav.wakeLock) {
       wakeLock = await nav.wakeLock.request('screen');
@@ -44,7 +48,7 @@ function showMenu(input: TiltInput): void {
 
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
-    ? 'Mount the phone in landscape, hold the board level, then tap Start. Tip: use “Re-center” any time your neutral drifts.'
+    ? 'Mount the phone in landscape, hold the board level, then tap Start. If your neutral drifts, tap ⏸ and Re\u2011center.'
     : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
 
   const startBtn = document.createElement('button');
@@ -87,13 +91,32 @@ function showMenu(input: TiltInput): void {
   ui.append(panel);
 }
 
+function pauseGame(): void {
+  if (game?.phase !== 'playing') return;
+  game.pause();
+  showPaused({
+    ui,
+    input: game.input,
+    onResume: () => {
+      showPauseButton(ui, pauseGame);
+      void requestWakeLock();
+      game?.resume();
+    },
+  });
+}
+
 function startGame(input: TiltInput): void {
-  ui.innerHTML = '';
+  showPauseButton(ui, pauseGame);
   game?.stop();
-  game = new Game(canvas, input, board.bestScore);
+  game = new Game(renderer, input, board.bestScore);
   game.onGameOverCallback((run) => {
     const outcome = board.record(run);
-    showGameOver({ ui, run, outcome, board, input, onRideAgain: () => startGame(input) });
+    const onRideAgain = () => {
+      // The OS drops the wake lock whenever the page is hidden, including on this screen.
+      void requestWakeLock();
+      startGame(input);
+    };
+    showGameOver({ ui, run, outcome, board, input, onRideAgain });
   });
   game.start();
 }
@@ -101,15 +124,12 @@ function startGame(input: TiltInput): void {
 function boot(): void {
   registerServiceWorker();
 
+  // Coming back stays paused until the rider taps Resume.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      game?.stop();
-      void wakeLock?.release().catch(() => undefined);
-      wakeLock = null;
-    } else if (game && game.phase === 'playing') {
-      void requestWakeLock();
-      game.start();
-    }
+    if (!document.hidden) return;
+    pauseGame();
+    void wakeLock?.release().catch(() => undefined);
+    wakeLock = null;
   });
 
   let input: TiltInput;

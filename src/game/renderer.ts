@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
-import type { Gate, PlayerState } from './types.js';
+import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
 /**
@@ -20,6 +20,9 @@ export function viewScale(screenWidth: number, safeInset: number): number {
   const available = Math.max(1, screenWidth - 2 * safeInset);
   return Math.min(1, available / needed);
 }
+
+/** Keeps the streak clear of the DOM pause button (56px wide, 12px from the edge in style.css). */
+const PAUSE_BUTTON_CLEARANCE = 84;
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -67,6 +70,11 @@ export class Renderer {
     this.canvas.style.height = `${this.screenH}px`;
   }
 
+  /** Clears effects that would otherwise carry over into the next run. */
+  reset(): void {
+    this.shake = 0;
+  }
+
   addShake(amount: number): void {
     this.shake = Math.min(14, this.shake + amount);
   }
@@ -77,7 +85,7 @@ export class Renderer {
     chaser: Chaser,
     score: number,
     streak: number,
-    phase: 'playing' | 'gameover',
+    phase: GamePhase,
     time: number,
     best: number | null,
     newBestAt: number | null,
@@ -311,18 +319,18 @@ export class Renderer {
     score: number,
     streak: number,
     player: PlayerState,
-    phase: 'playing' | 'gameover',
+    phase: GamePhase,
     best: number | null,
   ): void {
     const { ctx, screenW: w, screenH: h } = this;
     const left = 18 + this.insetLeft;
-    const right = w - 18 - this.insetRight;
+    const right = w - PAUSE_BUTTON_CLEARANCE - this.insetRight;
     ctx.fillStyle = '#22303f';
     ctx.font = '700 28px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(`${Math.floor(score)}`, left, 44);
-    ctx.font = '500 18px system-ui, sans-serif';
-    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 72);
+    ctx.font = '600 22px system-ui, sans-serif';
+    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 76);
     if (best !== null) {
       const label = `BEST ${best}`;
       ctx.font = '700 20px system-ui, sans-serif';
@@ -330,19 +338,20 @@ export class Renderer {
         // Gold text alone washes out on snow, so a beaten best gets a gold pill.
         ctx.fillStyle = '#ffc21a';
         ctx.beginPath();
-        ctx.roundRect(left - 8, 82, ctx.measureText(label).width + 16, 28, 14);
+        ctx.roundRect(left - 8, 88, ctx.measureText(label).width + 16, 30, 15);
         ctx.fill();
       }
       ctx.fillStyle = '#22303f';
-      ctx.fillText(label, left, 102);
+      ctx.fillText(label, left, 110);
     }
     if (streak >= 2) {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#1f7a3d';
+      ctx.font = '700 24px system-ui, sans-serif';
       ctx.fillText(`🔥 x${streak}`, right, 44);
     }
-    if (phase === 'gameover') {
-      // The DOM game-over panel sits on top of this dim.
+    if (phase === 'gameover' || phase === 'paused') {
+      // The DOM panel sits on top of this dim.
       ctx.fillStyle = 'rgba(14,26,43,0.72)';
       ctx.fillRect(0, 0, w, h);
     }
@@ -356,7 +365,7 @@ export class Renderer {
     const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
     const cx = (this.insetLeft + w - this.insetRight) / 2;
     // Below the top-left HUD block and well above the rider at 62% height.
-    const cy = Math.max(150, h * 0.26);
+    const cy = Math.max(160, h * 0.26);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(cx, cy);

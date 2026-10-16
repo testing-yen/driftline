@@ -2,7 +2,7 @@ import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
 import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
-import { Renderer } from './renderer.js';
+import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
 import type { GamePhase, PlayerState } from './types.js';
@@ -19,7 +19,6 @@ export class Game {
   private player: PlayerState = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
   private world = new World(Date.now() % 2147483647);
   private chaser = new Chaser();
-  private renderer: Renderer;
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
@@ -33,13 +32,12 @@ export class Game {
   private onGameOver: ((run: RunResult) => void) | null = null;
 
   constructor(
-    canvas: HTMLCanvasElement,
-    private readonly input: TiltInput,
+    /** Shared by every run on the page, so per-run effects are cleared in reset(). */
+    private readonly renderer: Renderer,
+    readonly input: TiltInput,
     /** Session best score to beat; null on the session's first run. */
     private readonly best: number | null,
-  ) {
-    this.renderer = new Renderer(canvas);
-  }
+  ) {}
 
   onGameOverCallback(cb: (run: RunResult) => void): void {
     this.onGameOver = cb;
@@ -49,32 +47,55 @@ export class Game {
     return this.score;
   }
 
+  /** Begins a new run from zero. */
   start(): void {
     this.reset();
     this.phase = 'playing';
-    if (!this.running) {
-      this.running = true;
-      this.last = performance.now();
-      const loop = (now: number) => {
-        if (!this.running) return;
-        this.acc += Math.min(0.1, (now - this.last) / 1000);
-        this.last = now;
-        let steps = 0;
-        while (this.acc >= STEP && steps < 5) {
-          this.update(STEP);
-          this.acc -= STEP;
-          steps += 1;
-        }
-        this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase === 'gameover' ? 'gameover' : 'playing', this.time, this.best, this.newBestAt);
-        this.raf = requestAnimationFrame(loop);
-      };
-      this.raf = requestAnimationFrame(loop);
-    }
+    this.runLoop();
+  }
+
+  pause(): void {
+    if (this.phase !== 'playing') return;
+    this.stop();
+    this.phase = 'paused';
+    this.draw();
+  }
+
+  /** Continues a paused run where it left off. */
+  resume(): void {
+    if (this.phase !== 'paused') return;
+    this.phase = 'playing';
+    this.runLoop();
   }
 
   stop(): void {
     this.running = false;
     cancelAnimationFrame(this.raf);
+  }
+
+  private runLoop(): void {
+    if (this.running) return;
+    this.running = true;
+    // Time spent stopped must not reach the accumulator as one huge step.
+    this.last = performance.now();
+    const loop = (now: number) => {
+      if (!this.running) return;
+      this.acc += Math.min(0.1, (now - this.last) / 1000);
+      this.last = now;
+      let steps = 0;
+      while (this.acc >= STEP && steps < 5) {
+        this.update(STEP);
+        this.acc -= STEP;
+        steps += 1;
+      }
+      this.draw();
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  private draw(): void {
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt);
   }
 
   private reset(): void {
@@ -87,6 +108,7 @@ export class Game {
     this.newBestAt = null;
     this.time = 0;
     this.acc = 0;
+    this.renderer.reset();
   }
 
   private update(dt: number): void {

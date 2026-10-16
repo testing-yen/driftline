@@ -39,4 +39,4 @@ export interface PlayerState {
   invulnTimer: number;
 }
 
-export type GamePhase = 'menu' | 'playing' | 'gameover';
+export type GamePhase = 'menu' | 'playing' | 'paused' | 'gameover';

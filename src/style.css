@@ -81,6 +81,28 @@ html, body {
   cursor: wait;
 }
 
+#ui .pause-btn {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(12px + env(safe-area-inset-right));
+  width: 56px;
+  height: 56px;
+  padding: 12px;
+  color: #fff;
+  background: rgba(14, 26, 43, 0.85);
+  border: 2px solid #fff;
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+#ui .pause-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+
 #ui .err {
   color: #ff9a9a;
   font-size: 14px;

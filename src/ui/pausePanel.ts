@@ -1,6 +1,20 @@
 import type { TiltInput } from '../input/TiltInput.js';
 import { recenterButton } from './recenter.js';
 
+const PAUSE_ICON =
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>';
+
+/** Replace the UI layer with the in-run pause button. */
+export function showPauseButton(ui: HTMLElement, onPause: () => void): void {
+  ui.innerHTML = '';
+  const button = document.createElement('button');
+  button.className = 'pause-btn';
+  button.setAttribute('aria-label', 'Pause');
+  button.innerHTML = PAUSE_ICON;
+  button.addEventListener('click', onPause);
+  ui.append(button);
+}
+
 export interface PausedOptions {
   ui: HTMLElement;
   input: TiltInput;

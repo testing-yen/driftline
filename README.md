@@ -78,7 +78,9 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
    granted from a user gesture, which is what that button does.
 4. Mount the phone in **landscape, screen facing up** on the board. Hold the
    board level while the game calibrates neutral (~1 second), then ride.
-5. If your neutral drifts mid-run, reload the page to re-calibrate.
+5. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
+   hold the board level, and tap **Re-center**. Reloading would wipe the
+   session board.
 6. **Wake lock**: the game requests a screen wake lock on start so the display
    doesn't sleep mid-run. If you lock the phone or switch apps mid-run, the run
    pauses and keeps its score. When you come back, the Paused panel waits until

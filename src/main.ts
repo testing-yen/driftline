@@ -7,7 +7,7 @@ import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { showGameOver } from './ui/gameOverPanel.js';
-import { showPaused } from './ui/pausePanel.js';
+import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ui = document.getElementById('ui') as HTMLDivElement;
@@ -48,7 +48,7 @@ function showMenu(input: TiltInput): void {
 
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
-    ? 'Mount the phone in landscape, hold the board level, then tap Start. Tip: use “Re-center” any time your neutral drifts.'
+    ? 'Mount the phone in landscape, hold the board level, then tap Start. If your neutral drifts, tap ⏸ and Re\u2011center.'
     : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
 
   const startBtn = document.createElement('button');
@@ -98,7 +98,7 @@ function pauseGame(): void {
     ui,
     input: game.input,
     onResume: () => {
-      ui.innerHTML = '';
+      showPauseButton(ui, pauseGame);
       void requestWakeLock();
       game?.resume();
     },
@@ -106,7 +106,7 @@ function pauseGame(): void {
 }
 
 function startGame(input: TiltInput): void {
-  ui.innerHTML = '';
+  showPauseButton(ui, pauseGame);
   game?.stop();
   game = new Game(renderer, input, board.bestScore);
   game.onGameOverCallback((run) => {

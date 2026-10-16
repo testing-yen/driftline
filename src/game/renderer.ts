@@ -21,6 +21,9 @@ export function viewScale(screenWidth: number, safeInset: number): number {
   return Math.min(1, available / needed);
 }
 
+/** Keeps the streak clear of the DOM pause button (56px wide, 12px from the edge in style.css). */
+const PAUSE_BUTTON_CLEARANCE = 84;
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   /** Visible area in world px (screen size divided by `scale`). */
@@ -321,7 +324,7 @@ export class Renderer {
   ): void {
     const { ctx, screenW: w, screenH: h } = this;
     const left = 18 + this.insetLeft;
-    const right = w - 18 - this.insetRight;
+    const right = w - PAUSE_BUTTON_CLEARANCE - this.insetRight;
     ctx.fillStyle = '#22303f';
     ctx.font = '700 28px system-ui, sans-serif';
     ctx.textAlign = 'left';

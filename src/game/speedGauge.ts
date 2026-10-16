@@ -17,20 +17,34 @@ export interface GaugeModel {
   chaserOverMax: boolean;
 }
 
-export const GAUGE_MAX_SPEED = CONFIG.baseSpeed * CONFIG.tuckMultiplier;
+/**
+ * Speed the rider eases toward for a forward/back lean in [-1, 1]:
+ * full back lean brakes, neutral coasts at baseSpeed, full forward lean tucks.
+ */
+export function leanTargetSpeed(tiltY: number, stumbling: boolean): number {
+  const factor =
+    tiltY >= 0
+      ? 1 + tiltY * (CONFIG.tuckMultiplier - 1)
+      : 1 + tiltY * (1 - CONFIG.brakeMultiplier);
+  const speed = CONFIG.baseSpeed * factor;
+  return stumbling ? speed * CONFIG.stumbleSlowFactor : speed;
+}
+
+export const GAUGE_MAX_SPEED = leanTargetSpeed(1, false);
+const CRUISE = leanTargetSpeed(0, false) / GAUGE_MAX_SPEED;
 
 export function gaugeModel(input: {
   speed: number;
   target: number;
-  chaserActive: boolean;
-  chaserSpeed: number;
+  /** null while the chaser has not appeared. */
+  chaserSpeed: number | null;
 }): GaugeModel {
   return {
     speed: toGauge(input.speed),
     target: toGauge(input.target),
-    cruise: CONFIG.baseSpeed / GAUGE_MAX_SPEED,
-    chaser: input.chaserActive ? toGauge(input.chaserSpeed) : null,
-    chaserOverMax: input.chaserActive && input.chaserSpeed > GAUGE_MAX_SPEED,
+    cruise: CRUISE,
+    chaser: input.chaserSpeed === null ? null : toGauge(input.chaserSpeed),
+    chaserOverMax: input.chaserSpeed !== null && input.chaserSpeed > GAUGE_MAX_SPEED,
   };
 }
 

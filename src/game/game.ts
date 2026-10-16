@@ -5,7 +5,7 @@ import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
-import { gaugeModel } from './speedGauge.js';
+import { gaugeModel, leanTargetSpeed } from './speedGauge.js';
 import type { GamePhase, PlayerState } from './types.js';
 import { World } from './world.js';
 
@@ -64,11 +64,6 @@ export class Game {
     this.draw();
   }
 
-  /** Repaints the current frame, so a HUD change made while paused shows behind the panel. */
-  redraw(): void {
-    this.draw();
-  }
-
   /** Continues a paused run where it left off. */
   resume(): void {
     if (this.phase !== 'paused') return;
@@ -102,12 +97,12 @@ export class Game {
     this.raf = requestAnimationFrame(loop);
   }
 
-  private draw(): void {
+  /** Paints the current frame; main.ts also calls it so a gauge change made while paused shows behind the panel. */
+  draw(): void {
     const gauge = gaugeModel({
       speed: this.player.speed,
       target: this.targetSpeed,
-      chaserActive: this.chaser.active,
-      chaserSpeed: this.chaser.speed,
+      chaserSpeed: this.chaser.active ? this.chaser.speed : null,
     });
     this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge);
   }
@@ -133,17 +128,9 @@ export class Game {
     this.input.update(dt);
     const tilt = this.input.sample();
 
-    // Speed: forward tilt tucks, backward tilt brakes.
-    const y = tilt.y;
-    const speedFactor =
-      y >= 0
-        ? 1 + y * (CONFIG.tuckMultiplier - 1)
-        : 1 + y * (1 - CONFIG.brakeMultiplier);
-    this.targetSpeed = CONFIG.baseSpeed * speedFactor;
-    if (this.player.stumbleTimer > 0) {
-      this.targetSpeed *= CONFIG.stumbleSlowFactor;
-      this.player.stumbleTimer -= dt;
-    }
+    const stumbling = this.player.stumbleTimer > 0;
+    this.targetSpeed = leanTargetSpeed(tilt.y, stumbling);
+    if (stumbling) this.player.stumbleTimer -= dt;
     this.player.speed += (this.targetSpeed - this.player.speed) * Math.min(1, dt * 6);
 
     // Lateral steering with soft walls.

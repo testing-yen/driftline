@@ -39,7 +39,7 @@ async function requestWakeLock(): Promise<void> {
 function speedGaugeSwitch(): HTMLElement {
   return gaugeSwitch(renderer.gaugeStyle, (style) => {
     renderer.gaugeStyle = style;
-    game?.redraw();
+    game?.draw();
   });
 }
 

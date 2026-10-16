@@ -5,6 +5,7 @@ import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
+import { gaugeModel } from './speedGauge.js';
 import type { GamePhase, PlayerState } from './types.js';
 import { World } from './world.js';
 
@@ -19,6 +20,8 @@ export class Game {
   private player: PlayerState = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
   private world = new World(Date.now() % 2147483647);
   private chaser = new Chaser();
+  /** Speed the current lean is easing toward, kept for the speed gauge. */
+  private targetSpeed: number = CONFIG.baseSpeed;
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
@@ -95,13 +98,20 @@ export class Game {
   }
 
   private draw(): void {
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt);
+    const gauge = gaugeModel({
+      speed: this.player.speed,
+      target: this.targetSpeed,
+      chaserActive: this.chaser.active,
+      chaserSpeed: this.chaser.speed,
+    });
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge);
   }
 
   private reset(): void {
     this.player = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
     this.world = new World(Date.now() % 2147483647);
     this.chaser.reset();
+    this.targetSpeed = CONFIG.baseSpeed;
     this.score = 0;
     this.streak = 0;
     this.gatesCleared = 0;
@@ -124,12 +134,12 @@ export class Game {
       y >= 0
         ? 1 + y * (CONFIG.tuckMultiplier - 1)
         : 1 + y * (1 - CONFIG.brakeMultiplier);
-    let targetSpeed = CONFIG.baseSpeed * speedFactor;
+    this.targetSpeed = CONFIG.baseSpeed * speedFactor;
     if (this.player.stumbleTimer > 0) {
-      targetSpeed *= CONFIG.stumbleSlowFactor;
+      this.targetSpeed *= CONFIG.stumbleSlowFactor;
       this.player.stumbleTimer -= dt;
     }
-    this.player.speed += (targetSpeed - this.player.speed) * Math.min(1, dt * 6);
+    this.player.speed += (this.targetSpeed - this.player.speed) * Math.min(1, dt * 6);
 
     // Lateral steering with soft walls.
     this.player.x += tilt.x * CONFIG.steerSpeed * dt;

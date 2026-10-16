@@ -18,7 +18,11 @@ export class Chaser {
   active = false;
   x = 0;
   y = 0;
-  private speed = CONFIG.chaserSpeed;
+  private currentSpeed = CONFIG.chaserSpeed;
+
+  get speed(): number {
+    return this.currentSpeed;
+  }
 
   /** Activate once the player passes the trigger distance. */
   maybeActivate(playerDistance: number, playerX: number, playerY: number): void {
@@ -26,13 +30,13 @@ export class Chaser {
     this.active = true;
     this.x = playerX;
     this.y = playerY - CONFIG.chaserSpawnBehind;
-    this.speed = CONFIG.chaserSpeed;
+    this.currentSpeed = CONFIG.chaserSpeed;
   }
 
   update(dt: number, playerX: number, playerY: number): void {
     if (!this.active) return;
-    this.speed += CONFIG.chaserAccel * dt;
-    this.y = Math.min(this.y + this.speed * dt, playerY);
+    this.currentSpeed += CONFIG.chaserAccel * dt;
+    this.y = Math.min(this.y + this.currentSpeed * dt, playerY);
     // Limited lateral homing — it drifts toward the player's line.
     const dx = playerX - this.x;
     const maxStep = CONFIG.chaserTurnSpeed * dt;
@@ -49,6 +53,6 @@ export class Chaser {
 
   reset(): void {
     this.active = false;
-    this.speed = CONFIG.chaserSpeed;
+    this.currentSpeed = CONFIG.chaserSpeed;
   }
 }

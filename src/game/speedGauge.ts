@@ -3,13 +3,6 @@ import { CONFIG } from '../config.js';
 /** Which speed gauge the HUD draws. A prototype switch so variants can be compared on the phone. */
 export type GaugeStyle = 'side' | 'bottom' | 'rider' | 'off';
 
-export const GAUGE_STYLES: readonly { style: GaugeStyle; label: string }[] = [
-  { style: 'side', label: 'A' },
-  { style: 'bottom', label: 'B' },
-  { style: 'rider', label: 'C' },
-  { style: 'off', label: 'Off' },
-];
-
 /** Every position is a 0..1 fraction of the gauge range, 0 .. full-tuck speed. */
 export interface GaugeModel {
   /** Actual player speed. */

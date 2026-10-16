@@ -85,3 +85,165 @@ html, body {
   color: #ff9a9a;
   font-size: 14px;
 }
+
+#ui .btn[aria-busy='true'] {
+  opacity: 1;
+}
+
+/* Game over: two columns so it fits a landscape phone (~844x390) without scrolling. */
+#ui .panel.gameover {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.3fr);
+  gap: 8px 28px;
+  align-items: center;
+  width: min(780px, calc(100vw - 2 * max(env(safe-area-inset-left), env(safe-area-inset-right)) - 24px));
+  max-width: none;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* body sets touch-action: none for the game; the panel must still scroll. */
+  touch-action: pan-y;
+  padding: 16px 24px;
+}
+
+@media (max-width: 700px) {
+  #ui .panel.gameover {
+    grid-template-columns: 1fr;
+  }
+}
+
+#ui .panel .go-title {
+  margin: 0;
+  font-size: 40px;
+  line-height: 1.1;
+}
+
+#ui .panel .go-title.new-best {
+  color: #ffd34d;
+  text-shadow: 0 0 18px rgba(255, 211, 77, 0.55);
+  animation: go-pulse 0.8s ease-in-out 6 alternate;
+}
+
+@keyframes go-pulse {
+  to {
+    transform: scale(1.1);
+  }
+}
+
+#ui .panel .go-delta {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffe38a;
+}
+
+#ui .panel .go-score {
+  margin: 6px 0 0;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+}
+
+#ui .panel .go-stats {
+  margin: 2px 0 0;
+  font-size: 20px;
+}
+
+#ui .go-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+#ui .go-actions .btn {
+  margin: 0;
+  min-height: 56px;
+  font-size: 20px;
+}
+
+#ui .panel .go-heading {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #c9d6e8;
+}
+
+#ui .go-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+#ui .go-table th {
+  font-weight: 600;
+  color: #8fa3bf;
+}
+
+#ui .go-table th,
+#ui .go-table td {
+  padding: 2px 6px;
+  text-align: right;
+}
+
+#ui .go-table th:first-child,
+#ui .go-table td:first-child {
+  text-align: left;
+}
+
+#ui .go-table tr.this-run td {
+  background: rgba(255, 211, 77, 0.2);
+  color: #ffd34d;
+  font-weight: 800;
+}
+
+#ui .go-table tr.extra td {
+  border-top: 2px dashed rgba(255, 255, 255, 0.3);
+}
+
+#ui .panel .go-total {
+  margin: 8px 0 0;
+  font-size: 20px;
+}
+
+#ui .confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#ui .confetti i {
+  position: absolute;
+  top: -20px;
+  left: var(--x);
+  width: 10px;
+  height: 16px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: go-confetti var(--dur) cubic-bezier(0.2, 0.6, 0.4, 1) var(--delay) forwards;
+}
+
+@keyframes go-confetti {
+  from {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg);
+  }
+  to {
+    opacity: 0.9;
+    transform: translate(var(--drift), 110vh) rotate(var(--spin));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ui .panel .go-title.new-best {
+    animation: none;
+  }
+
+  #ui .confetti {
+    display: none;
+  }
+}

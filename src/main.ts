@@ -5,6 +5,7 @@ import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
+import { showGameOver } from './ui/gameOverPanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const ui = document.getElementById('ui') as HTMLDivElement;
@@ -91,13 +92,8 @@ function startGame(input: TiltInput): void {
   game?.stop();
   game = new Game(canvas, input, board.bestScore);
   game.onGameOverCallback((run) => {
-    board.record(run);
-    // Renderer already draws the game-over overlay; a tap restarts.
-    const restart = () => {
-      canvas.removeEventListener('pointerdown', restart);
-      startGame(input);
-    };
-    canvas.addEventListener('pointerdown', restart);
+    const outcome = board.record(run);
+    showGameOver({ ui, run, outcome, board, input, onRideAgain: () => startGame(input) });
   });
   game.start();
 }

@@ -342,15 +342,9 @@ export class Renderer {
       ctx.fillText(`🔥 x${streak}`, right, 44);
     }
     if (phase === 'gameover') {
-      ctx.textAlign = 'center';
+      // The DOM game-over panel sits on top of this dim.
       ctx.fillStyle = 'rgba(14,26,43,0.72)';
       ctx.fillRect(0, 0, w, h);
-      ctx.fillStyle = '#fff';
-      ctx.font = '800 44px system-ui, sans-serif';
-      ctx.fillText('Caught!', w / 2, h / 2 - 30);
-      ctx.font = '500 22px system-ui, sans-serif';
-      ctx.fillText(`Score ${Math.floor(score)} · ${Math.floor(player.y / 10)} m`, w / 2, h / 2 + 12);
-      ctx.fillText('Tap to ride again', w / 2, h / 2 + 52);
     }
   }
 

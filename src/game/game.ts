@@ -64,6 +64,11 @@ export class Game {
     this.draw();
   }
 
+  /** Repaints the current frame, so a HUD change made while paused shows behind the panel. */
+  redraw(): void {
+    this.draw();
+  }
+
   /** Continues a paused run where it left off. */
   resume(): void {
     if (this.phase !== 'paused') return;

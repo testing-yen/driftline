@@ -19,6 +19,8 @@ export interface PausedOptions {
   ui: HTMLElement;
   input: TiltInput;
   onResume: () => void;
+  /** Speed gauge picker, so the variant can be changed mid-run. */
+  gaugeSwitch: HTMLElement;
 }
 
 /**
@@ -26,7 +28,7 @@ export interface PausedOptions {
  * automatic: the rider has just picked the phone up and needs time to get
  * back on the board before the chaser moves again.
  */
-export function showPaused({ ui, input, onResume }: PausedOptions): void {
+export function showPaused({ ui, input, onResume, gaugeSwitch }: PausedOptions): void {
   ui.innerHTML = '';
   const panel = document.createElement('div');
   panel.className = 'panel';
@@ -44,7 +46,7 @@ export function showPaused({ ui, input, onResume }: PausedOptions): void {
     actions.append(recenterButton(input, resume));
   }
 
-  panel.append(title, actions);
+  panel.append(title, actions, gaugeSwitch);
   ui.append(panel);
   resume.focus({ preventScroll: true });
 }

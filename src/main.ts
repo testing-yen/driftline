@@ -7,6 +7,7 @@ import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { gaugeSwitch } from './ui/gaugeSwitch.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -35,10 +36,17 @@ async function requestWakeLock(): Promise<void> {
   }
 }
 
+function speedGaugeSwitch(): HTMLElement {
+  return gaugeSwitch(renderer.gaugeStyle, (style) => {
+    renderer.gaugeStyle = style;
+    game?.redraw();
+  });
+}
+
 function showMenu(input: TiltInput): void {
   ui.innerHTML = '';
   const panel = document.createElement('div');
-  panel.className = 'panel';
+  panel.className = 'panel menu';
 
   const title = document.createElement('h1');
   title.textContent = 'DRIFTLINE';
@@ -88,6 +96,7 @@ function showMenu(input: TiltInput): void {
     panel.append(kbBtn);
   }
 
+  panel.append(speedGaugeSwitch());
   ui.append(panel);
 }
 
@@ -97,6 +106,7 @@ function pauseGame(): void {
   showPaused({
     ui,
     input: game.input,
+    gaugeSwitch: speedGaugeSwitch(),
     onResume: () => {
       showPauseButton(ui, pauseGame);
       void requestWakeLock();

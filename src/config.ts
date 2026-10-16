@@ -15,6 +15,7 @@ export const CONFIG = {
 
   /** Playfield */
   worldHalfWidth: 520, // half-width of the skiable slope, px
+  viewMargin: 40, // snow kept visible beyond each slope edge; the view zooms out to fit slope + margin on narrow screens
 
   /** Tilt input */
   maxTiltDeg: 25, // tilt angle that maps to full deflection

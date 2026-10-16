@@ -10,29 +10,61 @@ import type { World } from './world.js';
  * Face-down readability rules: high-contrast palette, large shapes, no text
  * smaller than 20px during gameplay, motion conveyed by speed streaks.
  */
+/**
+ * Zoom factor that fits the whole slope (plus `viewMargin` of snow on each
+ * side) into the screen width left over after the safe-area insets. Never
+ * zooms in past 1:1, so wide desktop screens render exactly as before.
+ */
+export function viewScale(screenWidth: number, safeInset: number): number {
+  const needed = 2 * (CONFIG.worldHalfWidth + CONFIG.viewMargin);
+  const available = Math.max(1, screenWidth - 2 * safeInset);
+  return Math.min(1, available / needed);
+}
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
+  /** Visible area in world px (screen size divided by `scale`). */
   private w = 0;
   private h = 0;
+  /** Screen size in CSS px, used for the HUD, which is never scaled. */
+  private screenW = 0;
+  private screenH = 0;
+  private dpr = 1;
+  private scale = 1;
+  private insetLeft = 0;
+  private insetRight = 0;
   private shake = 0;
+  /** Hidden element whose padding resolves the CSS safe-area insets to px. */
+  private readonly insetProbe: HTMLDivElement;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D not supported');
     this.ctx = ctx;
+    this.insetProbe = document.createElement('div');
+    this.insetProbe.style.cssText =
+      'position:fixed;visibility:hidden;pointer-events:none;' +
+      'padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);';
+    document.body.appendChild(this.insetProbe);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
   resize(): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.w = window.innerWidth;
-    this.h = window.innerHeight;
-    this.canvas.width = Math.floor(this.w * dpr);
-    this.canvas.height = Math.floor(this.h * dpr);
-    this.canvas.style.width = `${this.w}px`;
-    this.canvas.style.height = `${this.h}px`;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.screenW = window.innerWidth;
+    this.screenH = window.innerHeight;
+    const probe = getComputedStyle(this.insetProbe);
+    this.insetLeft = parseFloat(probe.paddingLeft) || 0;
+    this.insetRight = parseFloat(probe.paddingRight) || 0;
+    // The slope is centred, so reserve the larger inset (the notch side) on both sides.
+    this.scale = viewScale(this.screenW, Math.max(this.insetLeft, this.insetRight));
+    this.w = this.screenW / this.scale;
+    this.h = this.screenH / this.scale;
+    this.canvas.width = Math.floor(this.screenW * this.dpr);
+    this.canvas.height = Math.floor(this.screenH * this.dpr);
+    this.canvas.style.width = `${this.screenW}px`;
+    this.canvas.style.height = `${this.screenH}px`;
   }
 
   addShake(amount: number): void {
@@ -59,6 +91,9 @@ export class Renderer {
       this.shake *= 0.88;
     }
 
+    // World is drawn in world px, zoomed out to fit narrow screens.
+    const k = this.dpr * this.scale;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.save();
     ctx.translate(sx, sy);
 
@@ -86,12 +121,9 @@ export class Renderer {
     this.drawPlayer(w / 2 + player.x, playerScreenY, player);
     ctx.restore();
 
+    // HUD stays at 1:1 in screen px so text keeps its readable size.
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawHud(score, streak, player, phase);
-  }
-
-  /** Screen coords of the player for UI overlays (no shake applied). */
-  playerScreen(): { x: number; y: number } {
-    return { x: this.w / 2, y: this.h * 0.62 };
   }
 
   private drawSnow(player: PlayerState): void {
@@ -235,28 +267,30 @@ export class Renderer {
     player: PlayerState,
     phase: 'playing' | 'gameover',
   ): void {
-    const { ctx, w } = this;
+    const { ctx, screenW: w, screenH: h } = this;
+    const left = 18 + this.insetLeft;
+    const right = w - 18 - this.insetRight;
     ctx.fillStyle = '#22303f';
     ctx.font = '700 28px system-ui, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`${Math.floor(score)}`, 18, 44);
+    ctx.fillText(`${Math.floor(score)}`, left, 44);
     ctx.font = '500 18px system-ui, sans-serif';
-    ctx.fillText(`${Math.floor(player.y / 10)} m`, 18, 72);
+    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 72);
     if (streak >= 2) {
       ctx.textAlign = 'right';
       ctx.fillStyle = '#1f7a3d';
-      ctx.fillText(`🔥 x${streak}`, w - 18, 44);
+      ctx.fillText(`🔥 x${streak}`, right, 44);
     }
     if (phase === 'gameover') {
       ctx.textAlign = 'center';
       ctx.fillStyle = 'rgba(14,26,43,0.72)';
-      ctx.fillRect(0, 0, w, this.h);
+      ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#fff';
       ctx.font = '800 44px system-ui, sans-serif';
-      ctx.fillText('Caught!', w / 2, this.h / 2 - 30);
+      ctx.fillText('Caught!', w / 2, h / 2 - 30);
       ctx.font = '500 22px system-ui, sans-serif';
-      ctx.fillText(`Score ${Math.floor(score)} · ${Math.floor(player.y / 10)} m`, w / 2, this.h / 2 + 12);
-      ctx.fillText('Tap to ride again', w / 2, this.h / 2 + 52);
+      ctx.fillText(`Score ${Math.floor(score)} · ${Math.floor(player.y / 10)} m`, w / 2, h / 2 + 12);
+      ctx.fillText('Tap to ride again', w / 2, h / 2 + 52);
     }
   }
 }

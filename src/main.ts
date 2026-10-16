@@ -8,6 +8,7 @@ import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
 import { gaugeSwitch } from './ui/gaugeSwitch.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
@@ -57,7 +58,7 @@ function showMenu(input: TiltInput): void {
 
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
-    ? 'Mount the phone in landscape, hold the board level, then tap Start. If your neutral drifts, tap ⏸ and Re\u2011center.'
+    ? 'Mount the phone in portrait, hold the board level, then tap Start. New board? Tap Calibrate board first. If your neutral drifts, tap ⏸ and Re\u2011center.'
     : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
 
   const startBtn = document.createElement('button');
@@ -82,7 +83,25 @@ function showMenu(input: TiltInput): void {
     }
   });
 
-  panel.append(title, sub, controls, startBtn, errLine);
+  panel.append(title, sub, controls, startBtn);
+
+  const angles = input.angles;
+  if (angles) {
+    const calibrate = calibrateBoardButton(async () => {
+      calibrate.disabled = true;
+      errLine.textContent = '';
+      try {
+        // Motion permission must be granted inside this tap on iOS.
+        await input.start();
+        showCalibration({ ui, input, angles, onClose: () => showMenu(input) });
+      } catch (err) {
+        errLine.textContent = err instanceof Error ? err.message : String(err);
+        calibrate.disabled = false;
+      }
+    });
+    panel.append(calibrate);
+  }
+  panel.append(errLine);
 
   if (input.needsUserGesture) {
     const kbBtn = document.createElement('button');

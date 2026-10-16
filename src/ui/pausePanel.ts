@@ -1,4 +1,5 @@
 import type { TiltInput } from '../input/TiltInput.js';
+import { calibrateBoardButton, showCalibration } from './calibratePanel.js';
 import { recenterButton } from './recenter.js';
 import { tiltReadout } from './tiltReadout.js';
 
@@ -29,7 +30,8 @@ export interface PausedOptions {
  * automatic: the rider has just picked the phone up and needs time to get
  * back on the board before the chaser moves again.
  */
-export function showPaused({ ui, input, onResume, gaugeSwitch }: PausedOptions): void {
+export function showPaused(options: PausedOptions): void {
+  const { ui, input, onResume, gaugeSwitch } = options;
   ui.innerHTML = '';
   const panel = document.createElement('div');
   panel.className = 'panel';
@@ -45,6 +47,12 @@ export function showPaused({ ui, input, onResume, gaugeSwitch }: PausedOptions):
   actions.append(resume);
   if (input.needsUserGesture) {
     actions.append(recenterButton(input, resume));
+  }
+  const angles = input.angles;
+  if (angles) {
+    actions.append(
+      calibrateBoardButton(() => showCalibration({ ui, input, angles, onClose: () => showPaused(options) })),
+    );
   }
 
   const readout = tiltReadout(input);

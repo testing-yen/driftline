@@ -100,8 +100,7 @@ export class Game {
     this.raf = requestAnimationFrame(loop);
   }
 
-  /** Paints the current frame; main.ts also calls it so a gauge change made while paused shows behind the panel. */
-  draw(): void {
+  private draw(): void {
     const gauge = gaugeModel({
       speed: this.player.speed,
       target: this.targetSpeed,

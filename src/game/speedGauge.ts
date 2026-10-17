@@ -1,8 +1,5 @@
 import { CONFIG } from '../config.js';
 
-/** Which speed gauge the HUD draws. A prototype switch so variants can be compared on the phone. */
-export type GaugeStyle = 'side' | 'bottom' | 'rider' | 'off';
-
 /**
  * How the board's edge relates to the floor. 'touching' is the grace window
  * (a wobbling board brushes the floor); 'resting' means the rider has put

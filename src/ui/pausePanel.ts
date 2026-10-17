@@ -21,8 +21,6 @@ export interface PausedOptions {
   ui: HTMLElement;
   input: TiltInput;
   onResume: () => void;
-  /** Speed gauge picker, so the variant can be changed mid-run. */
-  gaugeSwitch: HTMLElement;
 }
 
 /**
@@ -31,7 +29,7 @@ export interface PausedOptions {
  * back on the board before the chaser moves again.
  */
 export function showPaused(options: PausedOptions): void {
-  const { ui, input, onResume, gaugeSwitch } = options;
+  const { ui, input, onResume } = options;
   ui.innerHTML = '';
   const panel = document.createElement('div');
   panel.className = 'panel';
@@ -66,11 +64,11 @@ export function showPaused(options: PausedOptions): void {
   if (readout) {
     // Side by side: stacked, the readout would push the panel past a landscape phone's height.
     const main = document.createElement('div');
-    main.append(title, actions, gaugeSwitch);
+    main.append(title, actions);
     panel.classList.add('with-readout');
     panel.append(main, readout);
   } else {
-    panel.append(title, actions, gaugeSwitch);
+    panel.append(title, actions);
   }
   ui.append(panel);
   resume.focus({ preventScroll: true });

@@ -9,7 +9,6 @@ import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
 import { showGameOver } from './ui/gameOverPanel.js';
-import { gaugeSwitch } from './ui/gaugeSwitch.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -36,13 +35,6 @@ async function requestWakeLock(): Promise<void> {
   } catch {
     // Wake lock is best-effort; the game works without it.
   }
-}
-
-function speedGaugeSwitch(): HTMLElement {
-  return gaugeSwitch(renderer.gaugeStyle, (style) => {
-    renderer.gaugeStyle = style;
-    game?.draw();
-  });
 }
 
 function showMenu(input: TiltInput): void {
@@ -116,7 +108,6 @@ function showMenu(input: TiltInput): void {
     panel.append(kbBtn);
   }
 
-  panel.append(speedGaugeSwitch());
   ui.append(panel);
 }
 
@@ -126,7 +117,6 @@ function pauseGame(): void {
   showPaused({
     ui,
     input: game.input,
-    gaugeSwitch: speedGaugeSwitch(),
     onResume: () => {
       showPauseButton(ui, pauseGame);
       void requestWakeLock();

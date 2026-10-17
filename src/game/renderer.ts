@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
-import type { EdgeContact, GaugeModel, GaugeStyle } from './speedGauge.js';
+import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
@@ -65,18 +65,7 @@ interface ScreenPoint {
   y: number;
 }
 
-type GaugeDraw = (gauge: GaugeModel, rider: ScreenPoint, time: number) => void;
-
 export class Renderer {
-  /** Prototype switch for comparing gauge variants; main.ts flips it from the menu and Paused panels. */
-  gaugeStyle: GaugeStyle = 'side';
-  private readonly gaugeDrawers: Record<Exclude<GaugeStyle, 'off'>, GaugeDraw> = {
-    side: (gauge, rider, time) => this.drawSideGauge(gauge, rider, time),
-    bottom: (gauge, _rider, time) => this.drawBottomGauge(gauge, time),
-    rider: (gauge, rider, time) => this.drawRiderGauge(gauge, rider, time),
-  };
-  /** Which side of the rider the dial sits on; flips only when it would leave the screen, so it does not jitter. */
-  private riderDialSide: 1 | -1 = 1;
   private ctx: CanvasRenderingContext2D;
   /** Visible area in world px (screen size divided by `scale`). */
   private w = 0;
@@ -89,7 +78,6 @@ export class Renderer {
   private insetLeft = 0;
   private insetRight = 0;
   private insetTop = 0;
-  private insetBottom = 0;
   private shake = 0;
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
@@ -102,7 +90,7 @@ export class Renderer {
     this.insetProbe.style.cssText =
       'position:fixed;visibility:hidden;pointer-events:none;' +
       'padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);' +
-      'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);';
+      'padding-top:env(safe-area-inset-top);';
     document.body.appendChild(this.insetProbe);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -116,7 +104,6 @@ export class Renderer {
     this.insetLeft = parseFloat(probe.paddingLeft) || 0;
     this.insetRight = parseFloat(probe.paddingRight) || 0;
     this.insetTop = parseFloat(probe.paddingTop) || 0;
-    this.insetBottom = parseFloat(probe.paddingBottom) || 0;
     // The slope is centred, so reserve the larger inset (the notch side) on both sides.
     this.scale = viewScale(this.screenW, Math.max(this.insetLeft, this.insetRight));
     this.w = this.screenW / this.scale;
@@ -130,7 +117,6 @@ export class Renderer {
   /** Clears effects that would otherwise carry over into the next run. */
   reset(): void {
     this.shake = 0;
-    this.riderDialSide = 1;
   }
 
   addShake(amount: number): void {
@@ -195,9 +181,7 @@ export class Renderer {
 
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    if (this.gaugeStyle !== 'off') {
-      this.gaugeDrawers[this.gaugeStyle](gauge, rider, time);
-    }
+    this.drawSideGauge(gauge, rider, time);
     this.drawHud(score, streak, player, phase, best);
     if (phase === 'playing' && newBestAt !== null) {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
@@ -422,7 +406,7 @@ export class Renderer {
     }
   }
 
-  /** A: vertical bar under the pause button, up = faster. */
+  /** Vertical speed bar under the pause button, up = faster. */
   private drawSideGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
     const thickness = 32;
     const cx = this.sideGaugeX();
@@ -442,21 +426,6 @@ export class Renderer {
   /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */
   private sideGaugeX(): number {
     return this.screenW - this.insetRight - 46;
-  }
-
-  /** B: horizontal bar at the bottom centre, right = faster. */
-  private drawBottomGauge(gauge: GaugeModel, time: number): void {
-    const thickness = 28;
-    const labelRoom = 90;
-    const centre = (this.insetLeft + this.screenW - this.insetRight) / 2;
-    const room = this.screenW - this.insetLeft - this.insetRight - 2 * (labelRoom + 18);
-    const length = Math.max(120, Math.min(420, room));
-    const x0 = centre - length / 2;
-    // Room below the bar for the chaser marker, clear of the home indicator.
-    const cy = this.screenH - this.insetBottom - 12 - 24 - thickness / 2;
-    this.drawGaugeLabel('SLOW', x0 - 18, cy, 'right', GAUGE_COLORS.slowFill);
-    this.drawBarGauge(gauge, x0, cy, 0, length, thickness, time);
-    this.drawGaugeLabel('FAST', x0 + length + 18, cy, 'left', GAUGE_COLORS.fastFill);
   }
 
   /**
@@ -526,87 +495,6 @@ export class Renderer {
     ctx.moveTo(tx, -half - 2);
     ctx.lineTo(tx - 13, -half - 24);
     ctx.lineTo(tx + 13, -half - 24);
-    ctx.closePath();
-    this.fillPointer();
-    ctx.restore();
-  }
-
-  /** C: compact dial beside the rider, never over them or the slope ahead (below). */
-  private drawRiderGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
-    const { ctx } = this;
-    const r = 36;
-    const band = 12;
-    const disc = r + band / 2 + 4;
-    const reach = disc + 18;
-    const offset = reach + 30;
-    const minX = this.insetLeft + 8;
-    const maxX = this.screenW - this.insetRight - 8;
-    const fitsRight = rider.x + offset + reach <= maxX;
-    const fitsLeft = rider.x - offset - reach >= minX;
-    if (this.riderDialSide === 1 && !fitsRight && fitsLeft) this.riderDialSide = -1;
-    else if (this.riderDialSide === -1 && !fitsLeft && fitsRight) this.riderDialSide = 1;
-    const cx = rider.x + this.riderDialSide * offset;
-    const cy = rider.y + 10;
-    // A 240-degree speedometer sweep, so a pinned needle points down-right instead of lying flat on the base.
-    const angleOf = (v: number) => (5 * Math.PI) / 6 + v * ((4 * Math.PI) / 3);
-    const arc = (from: number, to: number, color: string, width: number) => {
-      if (to <= from) return;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, angleOf(from), angleOf(to));
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.stroke();
-    };
-    const radial = (v: number, inner: number, outer: number, color: string, width: number) => {
-      const a = angleOf(v);
-      ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
-      ctx.lineTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.stroke();
-    };
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, disc, 0, 2 * Math.PI);
-    ctx.fillStyle = GAUGE_COLORS.track;
-    ctx.fill();
-    this.strokeGaugeOutline(gauge, time);
-
-    ctx.lineCap = 'butt';
-    arc(0, gauge.flat, GAUGE_COLORS.slowTint, band);
-    arc(gauge.flat, 1, GAUGE_COLORS.fastTint, band);
-    arc(0, Math.min(gauge.speed, gauge.flat), GAUGE_COLORS.slowFill, band - 4);
-    arc(gauge.flat, gauge.speed, GAUGE_COLORS.fastFill, band - 4);
-    if (gauge.chaserOverMax) arc(OVER_MAX_GLOW_FROM, 1, `rgba(255,59,59,${0.35 + 0.45 * pulse(time)})`, band);
-    radial(gauge.flat, r - band / 2 - 2, r + band / 2 + 2, GAUGE_COLORS.outline, 4);
-
-    if (gauge.chaser !== null) {
-      radial(gauge.chaser, r - band / 2 - 9, r + band / 2 + 2, GAUGE_COLORS.chaser, 5);
-      const a = angleOf(gauge.chaser);
-      ctx.beginPath();
-      ctx.arc(cx + Math.cos(a) * (r - band / 2 - 11), cy + Math.sin(a) * (r - band / 2 - 11), 5, 0, Math.PI * 2);
-      ctx.fillStyle = GAUGE_COLORS.chaser;
-      ctx.fill();
-    }
-
-    ctx.lineCap = 'round';
-    radial(gauge.speed, 0, r + band / 2 - 1, GAUGE_COLORS.ink, 8);
-    radial(gauge.speed, 0, r + band / 2 - 2, GAUGE_COLORS.outline, 4);
-    ctx.beginPath();
-    ctx.arc(cx, cy, 6, 0, Math.PI * 2);
-    ctx.fillStyle = GAUGE_COLORS.outline;
-    ctx.fill();
-
-    const a = angleOf(gauge.target);
-    const tip = disc + 1;
-    const base = disc + 17;
-    const side = { x: -Math.sin(a) * 10, y: Math.cos(a) * 10 };
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(a) * tip, cy + Math.sin(a) * tip);
-    ctx.lineTo(cx + Math.cos(a) * base + side.x, cy + Math.sin(a) * base + side.y);
-    ctx.lineTo(cx + Math.cos(a) * base - side.x, cy + Math.sin(a) * base - side.y);
     ctx.closePath();
     this.fillPointer();
     ctx.restore();
@@ -693,7 +581,7 @@ export class Renderer {
     }
     const left = this.insetLeft + gap;
     // The side gauge's target chevron reaches 40px left of its centre line.
-    const right = this.gaugeStyle === 'side' ? this.sideGaugeX() - 40 - gap : this.screenW - this.insetRight - gap;
+    const right = this.sideGaugeX() - 40 - gap;
     return {
       x: Math.max(left + width / 2, (left + right) / 2),
       y: (bandTop + bandBottom) / 2,

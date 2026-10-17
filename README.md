@@ -146,6 +146,7 @@ src/
   main.ts            # boot, menu UI, wake lock, PWA registration
   config.ts          # ALL tuning constants
   pwa.ts             # service worker registration
+  dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites
   input/
     TiltInput.ts           # the interface the game sees
     tiltMath.ts            # dead zone, low-pass, calibration (tested)
@@ -160,6 +161,7 @@ src/
     collisions.ts    # pure collision helpers (tested)
     scoring.ts       # pure scoring helpers (tested)
     renderer.ts      # Canvas 2D, original art only
+    sprites.ts       # pixel-art rider and beast frames + frame rules (tested)
     rng.ts / types.ts
 ```
 
@@ -173,8 +175,9 @@ scratch for this project:
   community decompilation exists but is **not** a usable open-source base —
   its own README states the game and assets remain the property of the
   original author.)
-- All art is drawn in code (geometric pines, rocks, gates, rider). The chaser
-  is an original "shadow beast", not the SkiFree yeti.
+- All art is drawn in code: geometric pines, rocks and gates, plus our own
+  pixel-art rider and chaser written as character maps in `sprites.ts`. The
+  chaser is an original "shadow beast", not the SkiFree yeti.
 - The name "SkiFree" (and the yeti character) are not used anywhere.
 - Game *mechanics* (steer downhill, dodge obstacles, timed gates) are not
   copyrightable; only creative expression is — and ours is original.

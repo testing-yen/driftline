@@ -1,12 +1,22 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
+import {
+  BEAST,
+  bakeFrames,
+  beastFrame,
+  devicePxPerSpritePx,
+  LeanTracker,
+  PLAYER,
+  type SpriteSheet,
+} from './sprites.js';
 import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
 /**
- * Canvas 2D renderer. ALL ART IS ORIGINAL — simple geometric shapes drawn in
- * code. No SkiFree sprites, no copied pixel art.
+ * Canvas 2D renderer. ALL ART IS ORIGINAL: geometric shapes drawn in code,
+ * plus our own pixel-art rider and beast from sprites.ts. No SkiFree sprites,
+ * no copied pixel art.
  *
  * Face-down readability rules: high-contrast palette, large shapes, no text
  * smaller than 20px during gameplay, motion conveyed by speed streaks.
@@ -81,6 +91,11 @@ export class Renderer {
   private shake = 0;
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
+  private readonly playerFrames = bakeFrames(PLAYER);
+  private readonly beastFrames = bakeFrames(BEAST);
+  private readonly lean = new LeanTracker();
+  /** What the sprite draws need beyond their position, captured at the top of render(). */
+  private frame = { time: 0, caught: false, rider: { x: 0, y: 0 } };
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
@@ -117,6 +132,7 @@ export class Renderer {
   /** Clears effects that would otherwise carry over into the next run. */
   reset(): void {
     this.shake = 0;
+    this.lean.reset();
   }
 
   addShake(amount: number): void {
@@ -140,6 +156,7 @@ export class Renderer {
     const playerScreenY = h * 0.62;
     const rider = { x: (w / 2 + player.x) * this.scale, y: playerScreenY * this.scale };
     const camY = player.y - playerScreenY;
+    this.frame = { time, caught: phase === 'gameover', rider: { x: w / 2 + player.x, y: playerScreenY } };
 
     let sx = 0;
     let sy = 0;
@@ -320,48 +337,45 @@ export class Renderer {
   }
 
   private drawPlayer(x: number, y: number, player: PlayerState): void {
-    const { ctx } = this;
+    // Track lean even while blinking so the next visible frame is current.
+    const lean = this.lean.update(player.x, this.frame.time);
     // Blink while invulnerable after a crash.
     if (player.invulnTimer > 0 && Math.floor(player.invulnTimer * 10) % 2 === 0) return;
-
-    // Skis.
-    ctx.strokeStyle = '#22303f';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(x - 10, y + 16);
-    ctx.lineTo(x - 10, y + 34);
-    ctx.moveTo(x + 10, y + 16);
-    ctx.lineTo(x + 10, y + 34);
-    ctx.stroke();
-    // Body (parka).
-    ctx.fillStyle = '#e8a33d';
-    ctx.beginPath();
-    ctx.arc(x, y, CONFIG.playerRadius, 0, Math.PI * 2);
-    ctx.fill();
-    // Helmet.
-    ctx.fillStyle = '#22303f';
-    ctx.beginPath();
-    ctx.arc(x, y - 6, 7, 0, Math.PI * 2);
-    ctx.fill();
+    this.drawSprite(PLAYER, this.playerFrames, player.stumbleTimer > 0 ? 'crashed' : lean, x, y);
   }
 
   private drawChaser(x: number, y: number): void {
+    const { time, caught, rider } = this.frame;
+    const frame = beastFrame(time, Math.hypot(rider.x - x, rider.y - y), caught);
+    this.drawSprite(BEAST, this.beastFrames, frame, x, y);
+  }
+
+  /**
+   * Draws a baked frame with its anchor on world point (x, y). Each sprite px
+   * covers a whole number of device px, snapped to the device grid, so the
+   * pixels stay crisp at any zoom.
+   */
+  private drawSprite<F extends string>(
+    sheet: SpriteSheet<F>,
+    baked: Record<F, HTMLCanvasElement>,
+    frame: F,
+    x: number,
+    y: number,
+  ): void {
     const { ctx } = this;
-    // Original "shadow beast": dark rounded blob with glowing eyes. NOT a yeti.
-    ctx.fillStyle = 'rgba(30,20,40,0.92)';
-    ctx.beginPath();
-    ctx.ellipse(x, y, 26, 32, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ff5d5d';
-    ctx.beginPath();
-    ctx.arc(x - 9, y - 8, 5, 0, Math.PI * 2);
-    ctx.arc(x + 9, y - 8, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.arc(x - 9, y - 8, 2, 0, Math.PI * 2);
-    ctx.arc(x + 9, y - 8, 2, 0, Math.PI * 2);
-    ctx.fill();
+    const m = ctx.getTransform();
+    const n = devicePxPerSpritePx(m.a);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(
+      baked[frame],
+      Math.round(m.e + m.a * x - sheet.anchor.x * n),
+      Math.round(m.f + m.d * y - sheet.anchor.y * n),
+      sheet.width * n,
+      sheet.height * n,
+    );
+    ctx.restore();
   }
 
   private drawHud(

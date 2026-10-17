@@ -426,13 +426,17 @@ export class Renderer {
   private drawSideGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
     const thickness = 32;
     const cx = this.sideGaugeX();
-    const top = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size + 16;
-    // Downhill is down the screen, so the bar stops above the rider to keep the slope ahead clear.
-    const bottom = rider.y - 30;
-    const labelRight = cx - thickness / 2 - 30;
-    this.drawGaugeLabel('FAST', labelRight, top, 'right', GAUGE_COLORS.fastFill);
+    // Labels sit above and below the bar, not beside it, so nothing extends into the slope.
+    // The gap keeps them clear of the target chevron when it sits at either end of the bar.
+    const labelGap = 28;
+    const fastY = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size + 28;
+    const top = fastY + labelGap;
+    // Downhill is down the screen, so the bar and its SLOW label stop above the rider to keep the slope ahead clear.
+    const slowY = rider.y - 42;
+    const bottom = slowY - labelGap;
+    this.drawGaugeLabel('FAST', cx, fastY, 'center', GAUGE_COLORS.fastFill);
     this.drawBarGauge(gauge, cx, bottom, -Math.PI / 2, bottom - top, thickness, time);
-    this.drawGaugeLabel('SLOW', labelRight, bottom, 'right', GAUGE_COLORS.slowFill);
+    this.drawGaugeLabel('SLOW', cx, slowY, 'center', GAUGE_COLORS.slowFill);
   }
 
   /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */

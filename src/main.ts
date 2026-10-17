@@ -2,10 +2,12 @@ import './style.css';
 import { Game } from './game/game.js';
 import { Renderer } from './game/renderer.js';
 import { SessionBoard } from './game/session.js';
+import { loadReach } from './input/boardReach.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
+import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
 import { showGameOver } from './ui/gameOverPanel.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
@@ -38,7 +40,7 @@ async function requestWakeLock(): Promise<void> {
 function showMenu(input: TiltInput): void {
   ui.innerHTML = '';
   const panel = document.createElement('div');
-  panel.className = 'panel';
+  panel.className = 'panel menu';
 
   const title = document.createElement('h1');
   title.textContent = 'DRIFTLINE';
@@ -48,8 +50,8 @@ function showMenu(input: TiltInput): void {
 
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
-    ? 'Mount the phone in landscape, hold the board level, then tap Start. If your neutral drifts, tap ⏸ and Re\u2011center.'
-    : 'Arrows / WASD or drag to steer. Up = tuck (faster), Down = brake.';
+    ? 'Mount the phone in portrait, hold the board level, then tap Start. New board? Tap Calibrate board first. If your neutral drifts, tap ⏸ and Re\u2011center.'
+    : 'Arrows / WASD or drag to steer. Hold Up to lean forward (faster); let go to slow down.';
 
   const startBtn = document.createElement('button');
   startBtn.className = 'btn';
@@ -73,7 +75,25 @@ function showMenu(input: TiltInput): void {
     }
   });
 
-  panel.append(title, sub, controls, startBtn, errLine);
+  panel.append(title, sub, controls, startBtn);
+
+  const angles = input.angles;
+  if (angles) {
+    const calibrate = calibrateBoardButton(async () => {
+      calibrate.disabled = true;
+      errLine.textContent = '';
+      try {
+        // Motion permission must be granted inside this tap on iOS.
+        await input.start();
+        showCalibration({ ui, input, angles, onClose: () => showMenu(input) });
+      } catch (err) {
+        errLine.textContent = err instanceof Error ? err.message : String(err);
+        calibrate.disabled = false;
+      }
+    });
+    panel.append(calibrate);
+  }
+  panel.append(errLine);
 
   if (input.needsUserGesture) {
     const kbBtn = document.createElement('button');
@@ -134,7 +154,7 @@ function boot(): void {
 
   let input: TiltInput;
   if (isTouchDevice) {
-    input = new DeviceMotionTiltInput();
+    input = new DeviceMotionTiltInput(loadReach());
   } else {
     const kb = new KeyboardTiltInput();
     kb.attach(canvas);

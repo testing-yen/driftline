@@ -1,12 +1,7 @@
 import { CONFIG } from '../config.js';
-import type { TiltInput, TiltSample } from './TiltInput.js';
-import {
-  LowPassFilter,
-  NeutralCalibrator,
-  applyDeadZone,
-  deadZoneToNormal,
-  degToNormal,
-} from './tiltMath.js';
+import { leanFromAngles, type BoardReach } from './boardReach.js';
+import type { LeanDegrees, TiltInput, TiltSample } from './TiltInput.js';
+import { LowPassFilter, NeutralCalibrator, TiltRange } from './tiltMath.js';
 
 type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
@@ -15,8 +10,8 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
 /**
  * Real phone input via the DeviceMotion API.
  *
- * Assumes the phone is mounted in LANDSCAPE, screen facing up toward the
- * player (the natural position on a board phone mount):
+ * Assumes the phone is mounted in PORTRAIT, screen facing up toward the
+ * player, top edge pointing forward:
  *   - roll  (rotation around the long axis) -> steer left/right
  *   - pitch (rotation around the short axis) -> tuck / brake
  *
@@ -30,13 +25,18 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
 export class DeviceMotionTiltInput implements TiltInput {
   readonly name = 'device-motion';
   readonly needsUserGesture = true;
+  readonly angles: { now: LeanDegrees; range: TiltRange; reach: BoardReach };
 
-  private tilt: TiltSample = { x: 0, y: 0 };
+  private tilt: TiltSample = { x: 0, y: 0, grounded: false };
   private filterX = new LowPassFilter(CONFIG.lowPassAlpha);
   private filterY = new LowPassFilter(CONFIG.lowPassAlpha);
   private calibrator = new NeutralCalibrator(CONFIG.calibSamples);
   private listening = false;
   private lastError: string | null = null;
+
+  constructor(reach: BoardReach) {
+    this.angles = { now: { x: 0, y: 0 }, range: new TiltRange(), reach };
+  }
 
   /** Most recent failure reason, for display in the UI. */
   get error(): string | null {
@@ -68,6 +68,8 @@ export class DeviceMotionTiltInput implements TiltInput {
 
   calibrate(): void {
     this.calibrator.reset();
+    // Maxima were measured from the old neutral.
+    this.angles.range.reset();
     this.filterX.reset();
     this.filterY.reset();
   }
@@ -81,7 +83,7 @@ export class DeviceMotionTiltInput implements TiltInput {
   }
 
   sample(): TiltSample {
-    return { x: this.tilt.x, y: this.tilt.y };
+    return { ...this.tilt };
   }
 
   private onMotion = (e: DeviceMotionEvent): void => {
@@ -95,11 +97,11 @@ export class DeviceMotionTiltInput implements TiltInput {
       this.calibrator.addSample(rollDeg, pitchDeg);
       const off = this.calibrator.offset();
 
-      const dz = deadZoneToNormal(CONFIG.deadZoneDeg, CONFIG.maxTiltDeg);
-      const nx = degToNormal(this.filterX.push(rollDeg - off.x), CONFIG.maxTiltDeg);
-      const ny = degToNormal(this.filterY.push(pitchDeg - off.y), CONFIG.maxTiltDeg);
-
-      this.tilt = { x: applyDeadZone(nx, dz), y: applyDeadZone(ny, dz) };
+      const xDeg = this.filterX.push(rollDeg - off.x);
+      const yDeg = this.filterY.push(pitchDeg - off.y);
+      this.angles.now = { x: xDeg, y: yDeg };
+      if (this.calibrator.isCalibrated) this.angles.range.record(xDeg, yDeg);
+      this.tilt = leanFromAngles(xDeg, yDeg, this.angles.reach);
     } catch (err) {
       this.lastError = err instanceof Error ? err.message : String(err);
     }

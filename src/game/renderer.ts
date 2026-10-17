@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
+import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import type { GamePhase, Gate, PlayerState } from './types.js';
 import type { World } from './world.js';
 
@@ -21,8 +22,48 @@ export function viewScale(screenWidth: number, safeInset: number): number {
   return Math.min(1, available / needed);
 }
 
-/** Keeps the streak clear of the DOM pause button (56px wide, 12px from the edge in style.css). */
-const PAUSE_BUTTON_CLEARANCE = 84;
+/** Eases 0..1..0 about 1.6 times a second, for warning glows. */
+function pulse(time: number): number {
+  return 0.5 + 0.5 * Math.sin(time * 10);
+}
+
+/** Mirrors the DOM pause button in style.css: 56px square, 12px in from the top-right corner. */
+const PAUSE_BUTTON = { size: 56, margin: 12 };
+/** Keeps the streak clear of the pause button. */
+const PAUSE_BUTTON_CLEARANCE = PAUSE_BUTTON.size + PAUSE_BUTTON.margin + 16;
+
+const GAUGE_COLORS = {
+  track: 'rgba(14,26,43,0.82)',
+  outline: '#ffffff',
+  slowTint: 'rgba(77,160,255,0.28)',
+  fastTint: 'rgba(255,170,90,0.26)',
+  slowFill: '#4da0ff',
+  fastFill: '#ff922b',
+  ink: '#22303f',
+  chaser: '#ff3b3b',
+  beast: '#1e1428',
+};
+/** Gauge fraction from which the warning glow shows once the chaser passes full lean. */
+const OVER_MAX_GLOW_FROM = 0.8;
+
+/** Half the NEW BEST! banner's height at its largest pop-in scale, plus its outline. */
+const NEW_BEST_HALF_HEIGHT = 40;
+/** Room kept above the rider's centre: the rider plus the "rider" gauge dial beside them. */
+const RIDER_CLEARANCE = 70;
+const GROUNDED_WARNING = {
+  text: 'Lift the edge!',
+  font: '900 30px system-ui, sans-serif',
+  height: 52,
+  padX: 22,
+  /** Gap kept from the screen edge and the side gauge. */
+  gap: 12,
+};
+
+/** Rider centre in HUD screen px. */
+interface ScreenPoint {
+  x: number;
+  y: number;
+}
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
@@ -36,6 +77,7 @@ export class Renderer {
   private scale = 1;
   private insetLeft = 0;
   private insetRight = 0;
+  private insetTop = 0;
   private shake = 0;
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
@@ -47,7 +89,8 @@ export class Renderer {
     this.insetProbe = document.createElement('div');
     this.insetProbe.style.cssText =
       'position:fixed;visibility:hidden;pointer-events:none;' +
-      'padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);';
+      'padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);' +
+      'padding-top:env(safe-area-inset-top);';
     document.body.appendChild(this.insetProbe);
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -60,6 +103,7 @@ export class Renderer {
     const probe = getComputedStyle(this.insetProbe);
     this.insetLeft = parseFloat(probe.paddingLeft) || 0;
     this.insetRight = parseFloat(probe.paddingRight) || 0;
+    this.insetTop = parseFloat(probe.paddingTop) || 0;
     // The slope is centred, so reserve the larger inset (the notch side) on both sides.
     this.scale = viewScale(this.screenW, Math.max(this.insetLeft, this.insetRight));
     this.w = this.screenW / this.scale;
@@ -89,9 +133,12 @@ export class Renderer {
     time: number,
     best: number | null,
     newBestAt: number | null,
+    gauge: GaugeModel,
+    contact: EdgeContact,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
+    const rider = { x: (w / 2 + player.x) * this.scale, y: playerScreenY * this.scale };
     const camY = player.y - playerScreenY;
 
     let sx = 0;
@@ -134,11 +181,13 @@ export class Renderer {
 
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.drawSideGauge(gauge, rider, time);
     this.drawHud(score, streak, player, phase, best);
     if (phase === 'playing' && newBestAt !== null) {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
       if (t >= 0 && t < 1) this.drawNewBestBanner(t);
     }
+    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
   }
 
   private drawSnow(player: PlayerState): void {
@@ -155,7 +204,7 @@ export class Renderer {
     ctx.fillRect(w / 2 - half - 26, -20, 18, h + 40);
     ctx.fillRect(w / 2 + half + 8, -20, 18, h + 40);
 
-    // Speed lines, denser when tucking.
+    // Speed lines, denser at speed.
     const lines = Math.floor(player.speed / 60);
     ctx.strokeStyle = 'rgba(140,170,210,0.35)';
     ctx.lineWidth = 3;
@@ -357,15 +406,218 @@ export class Renderer {
     }
   }
 
+  /** Vertical speed bar under the pause button, up = faster. */
+  private drawSideGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
+    const thickness = 32;
+    const cx = this.sideGaugeX();
+    // Labels sit above and below the bar, not beside it, so nothing extends into the slope.
+    // The gap keeps them clear of the target chevron when it sits at either end of the bar.
+    const labelGap = 28;
+    const fastY = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size + 28;
+    const top = fastY + labelGap;
+    // Downhill is down the screen, so the bar and its SLOW label stop above the rider to keep the slope ahead clear.
+    const slowY = rider.y - 42;
+    const bottom = slowY - labelGap;
+    this.drawGaugeLabel('FAST', cx, fastY, 'center', GAUGE_COLORS.fastFill);
+    this.drawBarGauge(gauge, cx, bottom, -Math.PI / 2, bottom - top, thickness, time);
+    this.drawGaugeLabel('SLOW', cx, slowY, 'center', GAUGE_COLORS.slowFill);
+  }
+
+  /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */
+  private sideGaugeX(): number {
+    return this.screenW - this.insetRight - 46;
+  }
+
+  /**
+   * Draws a bar from (x0, y0) along `angle`, slow end first. In the bar's own
+   * frame the target chevron sits on the -y side and the chaser marker on +y.
+   */
+  private drawBarGauge(
+    gauge: GaugeModel,
+    x0: number,
+    y0: number,
+    angle: number,
+    length: number,
+    thickness: number,
+    time: number,
+  ): void {
+    const { ctx } = this;
+    const half = thickness / 2;
+    const pad = 5;
+    const flatX = gauge.flat * length;
+    const speedX = gauge.speed * length;
+    ctx.save();
+    ctx.translate(x0, y0);
+    ctx.rotate(angle);
+
+    ctx.beginPath();
+    ctx.roundRect(0, -half, length, thickness, 8);
+    ctx.fillStyle = GAUGE_COLORS.track;
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = GAUGE_COLORS.slowTint;
+    ctx.fillRect(0, -half, flatX, thickness);
+    ctx.fillStyle = GAUGE_COLORS.fastTint;
+    ctx.fillRect(flatX, -half, length - flatX, thickness);
+    ctx.fillStyle = GAUGE_COLORS.slowFill;
+    ctx.fillRect(0, -half + pad, Math.min(speedX, flatX), thickness - 2 * pad);
+    if (speedX > flatX) {
+      ctx.fillStyle = GAUGE_COLORS.fastFill;
+      ctx.fillRect(flatX, -half + pad, speedX - flatX, thickness - 2 * pad);
+    }
+    if (gauge.chaserOverMax) {
+      ctx.fillStyle = `rgba(255,59,59,${0.35 + 0.45 * pulse(time)})`;
+      ctx.fillRect(length * OVER_MAX_GLOW_FROM, -half, length * (1 - OVER_MAX_GLOW_FROM), thickness);
+    }
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.roundRect(0, -half, length, thickness, 8);
+    this.strokeGaugeOutline(gauge, time);
+
+    ctx.fillStyle = GAUGE_COLORS.outline;
+    ctx.fillRect(flatX - 2.5, -half - 5, 5, thickness + 10);
+
+    if (gauge.chaser !== null) {
+      const x = Math.max(2.5, Math.min(length - 2.5, gauge.chaser * length));
+      ctx.fillStyle = GAUGE_COLORS.chaser;
+      ctx.fillRect(x - 2.5, -half - 4, 5, thickness + 8);
+      ctx.save();
+      ctx.translate(x, half + 13);
+      ctx.rotate(-angle);
+      this.drawBeastMarker(0, 0);
+      ctx.restore();
+    }
+
+    const tx = gauge.target * length;
+    ctx.beginPath();
+    ctx.moveTo(tx, -half - 2);
+    ctx.lineTo(tx - 13, -half - 24);
+    ctx.lineTo(tx + 13, -half - 24);
+    ctx.closePath();
+    this.fillPointer();
+    ctx.restore();
+  }
+
+  /** Strokes the current path as the gauge border, glowing red once the chaser can't be outrun. */
+  private strokeGaugeOutline(gauge: GaugeModel, time: number): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = GAUGE_COLORS.outline;
+    if (gauge.chaserOverMax) {
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = GAUGE_COLORS.chaser;
+      ctx.shadowColor = GAUGE_COLORS.chaser;
+      ctx.shadowBlur = 8 + 12 * pulse(time);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Fills the current path as the lean-target pointer: white with a dark rim so it reads on snow and track alike. */
+  private fillPointer(): void {
+    const { ctx } = this;
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    ctx.stroke();
+    ctx.fillStyle = GAUGE_COLORS.outline;
+    ctx.fill();
+  }
+
+  /** A tiny shadow beast head so the chaser line reads as "the beast", not another limit. */
+  private drawBeastMarker(x: number, y: number): void {
+    const { ctx } = this;
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = GAUGE_COLORS.beast;
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = GAUGE_COLORS.chaser;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x - 4, y - 2, 2.2, 0, Math.PI * 2);
+    ctx.arc(x + 4, y - 2, 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = GAUGE_COLORS.chaser;
+    ctx.fill();
+  }
+
+  private drawGaugeLabel(text: string, x: number, y: number, align: CanvasTextAlign, color: string): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.font = '800 20px system-ui, sans-serif';
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
+
+  /** Below the top-left HUD block and well above the rider at 62% height. */
+  private newBestBannerY(): number {
+    return Math.max(160, this.screenH * 0.26);
+  }
+
+  /**
+   * Centre of the "Lift the edge!" pill. It goes between the NEW BEST! banner
+   * and the rider when that gap fits it (portrait), otherwise in the top row
+   * between the score and the streak, level with the pause button (landscape).
+   */
+  private groundedWarningCentre(rider: ScreenPoint, width: number): ScreenPoint {
+    const { height, gap } = GROUNDED_WARNING;
+    const bandTop = this.newBestBannerY() + NEW_BEST_HALF_HEIGHT;
+    const bandBottom = rider.y - RIDER_CLEARANCE;
+    if (bandBottom - bandTop < height + 2 * gap) {
+      return {
+        x: (this.insetLeft + this.screenW - this.insetRight) / 2,
+        y: this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size / 2,
+      };
+    }
+    const left = this.insetLeft + gap;
+    // The side gauge's target chevron reaches 40px left of its centre line.
+    const right = this.sideGaugeX() - 40 - gap;
+    return {
+      x: Math.max(left + width / 2, (left + right) / 2),
+      y: (bandTop + bandBottom) / 2,
+    };
+  }
+
+  private drawGroundedWarning(rider: ScreenPoint, time: number, contact: Exclude<EdgeContact, 'off'>): void {
+    const { ctx } = this;
+    const { text, font, height, padX } = GROUNDED_WARNING;
+    ctx.save();
+    ctx.font = font;
+    const width = ctx.measureText(text).width + 2 * padX;
+    const { x, y } = this.groundedWarningCentre(rider, width);
+    ctx.beginPath();
+    ctx.roundRect(x - width / 2, y - height / 2, width, height, height / 2);
+    ctx.fillStyle = '#d62828';
+    ctx.fill();
+    // Resting on the edge is already costing speed, so the warning pulses harder and faster.
+    ctx.lineWidth = contact === 'resting' ? 4 + 6 * pulse(time * 3) : 3 + 3 * pulse(time);
+    ctx.strokeStyle = '#22303f';
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y + 1);
+    ctx.restore();
+  }
+
   /** t runs 0..1 over the banner's lifetime: pop in, hold, fade out. */
   private drawNewBestBanner(t: number): void {
-    const { ctx, screenW: w, screenH: h } = this;
+    const { ctx, screenW: w } = this;
     const grow = Math.min(1, t / 0.15);
     const scale = 0.6 + 0.4 * grow + 0.15 * Math.sin(grow * Math.PI);
     const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
     const cx = (this.insetLeft + w - this.insetRight) / 2;
-    // Below the top-left HUD block and well above the rider at 62% height.
-    const cy = Math.max(160, h * 0.26);
+    const cy = this.newBestBannerY();
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(cx, cy);

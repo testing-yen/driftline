@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   LowPassFilter,
   NeutralCalibrator,
+  TiltRange,
   applyDeadZone,
   deadZoneToNormal,
   degToNormal,
@@ -101,5 +102,28 @@ describe('NeutralCalibrator', () => {
     c.reset();
     expect(c.isCalibrated).toBe(false);
     expect(c.offset()).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('TiltRange', () => {
+  it('keeps the furthest lean in each direction separately', () => {
+    const r = new TiltRange();
+    r.record(3, 8);
+    r.record(-6, -2);
+    r.record(1, 5);
+    expect({ forward: r.forward, back: r.back, left: r.left, right: r.right }).toEqual({
+      forward: 8,
+      back: 2,
+      left: 6,
+      right: 3,
+    });
+  });
+
+  it('starts at zero and returns to zero on reset', () => {
+    const r = new TiltRange();
+    expect([r.forward, r.back, r.left, r.right]).toEqual([0, 0, 0, 0]);
+    r.record(4, -9);
+    r.reset();
+    expect([r.forward, r.back, r.left, r.right]).toEqual([0, 0, 0, 0]);
   });
 });

@@ -5,6 +5,7 @@ import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
+import { edgeContact, gaugeModel, leanTargetSpeed, type EdgeContact } from './speedGauge.js';
 import type { GamePhase, PlayerState } from './types.js';
 import { World } from './world.js';
 
@@ -16,9 +17,14 @@ const STEP = 1 / 60;
  */
 export class Game {
   phase: GamePhase = 'menu';
-  private player: PlayerState = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
+  private player: PlayerState = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0 };
   private world = new World(Date.now() % 2147483647);
   private chaser = new Chaser();
+  /** Speed the current lean is easing toward, kept for the speed gauge. */
+  private targetSpeed: number = CONFIG.flatSpeed;
+  /** Seconds the board's edge has been down without a break. */
+  private groundedFor = 0;
+  private contact: EdgeContact = 'off';
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
@@ -95,13 +101,21 @@ export class Game {
   }
 
   private draw(): void {
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt);
+    const gauge = gaugeModel({
+      speed: this.player.speed,
+      target: this.targetSpeed,
+      chaserSpeed: this.chaser.active ? this.chaser.speed : null,
+    });
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact);
   }
 
   private reset(): void {
-    this.player = { x: 0, y: 0, speed: CONFIG.baseSpeed, stumbleTimer: 0, invulnTimer: 0 };
+    this.player = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0 };
     this.world = new World(Date.now() % 2147483647);
     this.chaser.reset();
+    this.targetSpeed = CONFIG.flatSpeed;
+    this.groundedFor = 0;
+    this.contact = 'off';
     this.score = 0;
     this.streak = 0;
     this.gatesCleared = 0;
@@ -118,18 +132,12 @@ export class Game {
     this.input.update(dt);
     const tilt = this.input.sample();
 
-    // Speed: forward tilt tucks, backward tilt brakes.
-    const y = tilt.y;
-    const speedFactor =
-      y >= 0
-        ? 1 + y * (CONFIG.tuckMultiplier - 1)
-        : 1 + y * (1 - CONFIG.brakeMultiplier);
-    let targetSpeed = CONFIG.baseSpeed * speedFactor;
-    if (this.player.stumbleTimer > 0) {
-      targetSpeed *= CONFIG.stumbleSlowFactor;
-      this.player.stumbleTimer -= dt;
-    }
-    this.player.speed += (targetSpeed - this.player.speed) * Math.min(1, dt * 6);
+    const stumbling = this.player.stumbleTimer > 0;
+    this.groundedFor = tilt.grounded ? this.groundedFor + dt : 0;
+    this.contact = edgeContact(tilt.grounded, this.groundedFor);
+    this.targetSpeed = leanTargetSpeed(tilt.y, this.contact, stumbling);
+    if (stumbling) this.player.stumbleTimer -= dt;
+    this.player.speed += (this.targetSpeed - this.player.speed) * Math.min(1, dt * 6);
 
     // Lateral steering with soft walls.
     this.player.x += tilt.x * CONFIG.steerSpeed * dt;

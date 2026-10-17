@@ -7,9 +7,10 @@
  */
 export const CONFIG = {
   /** Player physics */
-  baseSpeed: 260, // px/s downhill at neutral tilt
-  tuckMultiplier: 1.8, // forward tilt (tuck) speed multiplier
-  brakeMultiplier: 0.55, // backward tilt (brake) speed multiplier
+  // Speed comes from forward lean only. Leaning back is nearly impossible in a plank,
+  // so a level board is the slowest a rider goes without a penalty.
+  flatSpeed: 143, // px/s with the board level (no forward lean)
+  fullLeanSpeed: 468, // px/s at full forward lean (fullLeanFraction of the forward reach)
   steerSpeed: 460, // px/s lateral movement at full tilt
   playerRadius: 14, // collision radius of the rider, px
 
@@ -18,10 +19,21 @@ export const CONFIG = {
   viewMargin: 40, // snow kept visible beyond each slope edge; the view zooms out to fit slope + margin on narrow screens
 
   /** Tilt input */
-  maxTiltDeg: 25, // tilt angle that maps to full deflection
+  // Both fractions are of the board's reach (the lean at which its edge touches the floor,
+  // calibrated per board) and depend on the hardware; re-tune them for a different board or plank rig.
+  fullLeanFraction: 0.7, // full steer/tuck/brake here, so top speed never needs the edge on the floor (resting there would stop the plank workout)
+  groundedFraction: 0.9, // past this the edge is effectively on the floor: "Lift the edge!" and no lean bonus
+  groundedGraceS: 0.5, // a wobbling board brushes the floor; only an edge held down this long counts as resting on it
+  restingSpeedFactor: 0.5, // × flatSpeed once resting on the edge, so leaning on the floor instead of planking loses the run
   deadZoneDeg: 2, // ignore tilt smaller than this (1-3 deg recommended)
   lowPassAlpha: 0.22, // smoothing for IMU noise (~10 Hz feel at 60 fps)
   calibSamples: 60, // samples (~1s) used for per-session neutral calibration
+
+  /** Board reach calibration (Calibrate board flow) */
+  reachCaptureMinDeg: 8, // a push only counts once the lean passes this; below it the rider has not started pushing
+  reachHoldToleranceDeg: 1, // the lean must stay within this of where the hold started...
+  reachHoldMs: 1000, // ...for this long, so a bounce off the floor is not captured as the reach
+  reachLevelDeg: 4, // between directions every lean must drop below this before the next push arms
 
   /** Obstacles & gates */
   chunkHeight: 1000, // world-gen chunk height, px
@@ -34,7 +46,7 @@ export const CONFIG = {
   /** Chaser ("shadow beast") — the run timer */
   chaserTriggerDistance: 4500, // px travelled before the chaser appears (~17s in)
   chaserSpawnBehind: 850, // px behind the player at spawn
-  chaserSpeed: 295, // px/s — slightly above baseSpeed so coasters get caught
+  chaserSpeed: 295, // px/s — about halfway from flat to full lean, so a level board gets caught
   chaserAccel: 5, // px/s^2 — guarantees even tuckers get caught eventually
   chaserTurnSpeed: 260, // px/s lateral homing speed
   chaserCatchRadius: 30, // catch distance, px

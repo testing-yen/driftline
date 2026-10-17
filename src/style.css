@@ -43,6 +43,25 @@ html, body {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
+/* Wider and shorter so the start screen and gauge switch fit a landscape phone (~844x390). */
+#ui .panel.menu {
+  box-sizing: border-box;
+  width: min(640px, calc(100vw - 48px));
+  max-width: none;
+  max-height: calc(100vh - 16px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  overflow-y: auto;
+  touch-action: pan-y;
+  padding: 20px 28px;
+}
+
+/* The Calibrate board button pushes the menu just past a landscape phone's height. */
+@media (max-height: 420px) {
+  #ui .panel.menu {
+    padding-block: 10px;
+  }
+}
+
 #ui .panel h1 {
   margin: 0 0 8px;
   font-size: 34px;
@@ -106,6 +125,10 @@ html, body {
 #ui .err {
   color: #ff9a9a;
   font-size: 14px;
+}
+
+#ui .err:empty {
+  display: none;
 }
 
 #ui .btn[aria-busy='true'] {
@@ -268,4 +291,144 @@ html, body {
   #ui .confetti {
     display: none;
   }
+}
+
+#ui .panel.with-readout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 16px 28px;
+  /* An absolutely positioned panel at left: 50% would otherwise only get half the screen and always wrap. */
+  width: max-content;
+  box-sizing: border-box;
+  max-width: min(820px, calc(100vw - 24px));
+}
+
+#ui .tilt-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#ui .tilt-readout table {
+  border-collapse: collapse;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+#ui .tilt-readout th,
+#ui .tilt-readout td {
+  padding: 2px 10px;
+  text-align: right;
+}
+
+#ui .tilt-readout th {
+  color: #c9d6e8;
+  font-weight: 700;
+}
+
+#ui .tilt-readout .btn {
+  margin: 0;
+}
+
+/* Read from a board underfoot, so every line is large; fits a portrait phone and a landscape one (~844x390). */
+#ui .panel.calib {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 24px));
+  max-width: none;
+  max-height: calc(100vh - 16px);
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 18px 24px;
+}
+
+#ui .panel .calib-step {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #8fa3bf;
+}
+
+#ui .panel .calib-title {
+  margin: 4px 0;
+  font-size: 32px;
+  line-height: 1.15;
+}
+
+#ui .panel .calib-angle {
+  margin: 4px 0;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #ffd34d;
+  font-variant-numeric: tabular-nums;
+}
+
+#ui .panel .calib-angle.returning {
+  color: #fff;
+}
+
+#ui .panel .calib-hint {
+  margin: 6px 0 0;
+  font-size: 20px;
+}
+
+#ui .panel .calib-hint:empty {
+  display: none;
+}
+
+#ui .calib-hold {
+  height: 16px;
+  margin: 8px auto 0;
+  width: min(320px, 100%);
+  border: 2px solid #ffd34d;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+#ui .calib-hold span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: #ffd34d;
+}
+
+#ui .calib-summary {
+  margin: 4px auto 0;
+  border-collapse: collapse;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+
+#ui .calib-summary th,
+#ui .calib-summary td {
+  padding: 2px 12px;
+  text-align: right;
+}
+
+#ui .calib-summary th {
+  color: #c9d6e8;
+}
+
+#ui .calib-summary th:first-child {
+  text-align: left;
+}
+
+#ui .panel.calib .panel-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#ui .panel.calib .panel-actions .btn {
+  min-width: 140px;
+}
+
+#ui .panel.calib [hidden] {
+  display: none;
 }

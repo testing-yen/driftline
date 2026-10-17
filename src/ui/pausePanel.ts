@@ -1,5 +1,7 @@
 import type { TiltInput } from '../input/TiltInput.js';
-import { recenterButton } from './recenter.js';
+import { calibrateBoardButton, showCalibration } from './calibratePanel.js';
+import { recenterButton, whenCalibrated } from './recenter.js';
+import { tiltReadout } from './tiltReadout.js';
 
 const PAUSE_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>';
@@ -26,7 +28,8 @@ export interface PausedOptions {
  * automatic: the rider has just picked the phone up and needs time to get
  * back on the board before the chaser moves again.
  */
-export function showPaused({ ui, input, onResume }: PausedOptions): void {
+export function showPaused(options: PausedOptions): void {
+  const { ui, input, onResume } = options;
   ui.innerHTML = '';
   const panel = document.createElement('div');
   panel.className = 'panel';
@@ -40,11 +43,33 @@ export function showPaused({ ui, input, onResume }: PausedOptions): void {
   resume.textContent = 'Resume';
   resume.addEventListener('click', onResume);
   actions.append(resume);
+  if (!input.calibrated) {
+    // Back from a Calibrate board cancelled while it was still measuring level.
+    resume.disabled = true;
+    whenCalibrated(input, () => {
+      resume.disabled = false;
+    });
+  }
   if (input.needsUserGesture) {
     actions.append(recenterButton(input, resume));
   }
+  const angles = input.angles;
+  if (angles) {
+    actions.append(
+      calibrateBoardButton(() => showCalibration({ ui, input, angles, onClose: () => showPaused(options) })),
+    );
+  }
 
-  panel.append(title, actions);
+  const readout = tiltReadout(input);
+  if (readout) {
+    // Side by side: stacked, the readout would push the panel past a landscape phone's height.
+    const main = document.createElement('div');
+    main.append(title, actions);
+    panel.classList.add('with-readout');
+    panel.append(main, readout);
+  } else {
+    panel.append(title, actions);
+  }
   ui.append(panel);
   resume.focus({ preventScroll: true });
 }

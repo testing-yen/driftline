@@ -5,7 +5,7 @@ proof-of-concept for the **open balance-board fitness platform** idea: a wobble
 board plus the phone in your pocket becomes a full-body game controller.
 
 You are a rider carving down an endless slope. Tilt the board left and right to
-steer, lean forward to tuck for speed, lean back to brake. Thread slalom gates
+steer, lean forward for speed, level out to slow down. Thread slalom gates
 for points, dodge pines and rocks — and keep an eye uphill: after a while, a
 shadow beast picks up your scent, and it *will* catch you. A run lasts about
 60–120 seconds, which is exactly one good plank.
@@ -76,12 +76,37 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
 3. On the iPhone (any network), open the HTTPS URL. Tap
    **"Enable motion & start"** — iOS 13+ requires motion permission to be
    granted from a user gesture, which is what that button does.
-4. Mount the phone in **landscape, screen facing up** on the board. Hold the
-   board level while the game calibrates neutral (~1 second), then ride.
-5. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
+4. Mount the phone in **portrait, screen facing up, top edge pointing
+   forward** on the board. Hold the board level while the game calibrates
+   neutral (~1 second), then ride.
+5. **Calibrate your board** once, and again whenever the hardware changes. Tap
+   **Calibrate board** on the start screen or the Paused panel:
+   1. Hold the board level while it measures neutral.
+   2. Push the forward edge to the floor and hold still until the bar fills
+      (about 1 second). Return the board to level.
+   3. Repeat for the back, left, and right edges.
+   4. Check the summary, which lists each edge's floor angle and the angle for
+      full speed, then tap **Save**. **Redo** starts over; **Cancel** keeps
+      the previous measurement.
+
+   The phone remembers the result (localStorage key `driftline.boardReach.v1`).
+   Until you calibrate, the game uses angles measured on one wobble board
+   (`DEFAULT_REACH` in `src/input/boardReach.ts`).
+
+   Speed comes from leaning **forward** only (leaning back is nearly
+   impossible in a plank): a level board is the slowest, and full speed
+   arrives at 70% of the forward edge's floor angle, so you reach it while
+   planking, not while resting on the edge. Steering uses the same 70% of the
+   left and right edges. Past 90% of any edge the board is effectively on the
+   floor: the game shows **Lift the edge!** and gives no lean bonus, and if the
+   edge stays down for more than half a second the rider slows to half the
+   level-board speed. All of these depend on the hardware; tune
+   `fullLeanFraction`, `groundedFraction`, `groundedGraceS` and
+   `restingSpeedFactor` in `src/config.ts` for another board or a plank rig.
+6. If your neutral drifts mid-run, tap the **⏸** button in the top-right corner,
    hold the board level, and tap **Re-center**. Reloading would wipe the
    session board.
-6. **Wake lock**: the game requests a screen wake lock on start so the display
+7. **Wake lock**: the game requests a screen wake lock on start so the display
    doesn't sleep mid-run. If you lock the phone or switch apps mid-run, the run
    pauses and keeps its score. When you come back, the Paused panel waits until
    you are on the board again and tap **Resume**.
@@ -104,7 +129,7 @@ and service worker make it installable and work offline after the first load).
 ```
 
 - **Unit** (`npm test`): collision detection, scoring, chaser catch-up logic,
-  input dead-zone math. Run in CI on every push/PR.
+  input dead-zone math, per-board lean normalization, and the calibration steps. Run in CI on every push/PR.
 - **Desktop sim**: `KeyboardTiltInput` maps arrows/WASD and pointer drag to the
   same `TiltInput` interface the phone uses — tune `src/config.ts` here.
 - **On-phone**: verifies IMU calibration, dead zone feel, and performance on
@@ -124,6 +149,8 @@ src/
   input/
     TiltInput.ts           # the interface the game sees
     tiltMath.ts            # dead zone, low-pass, calibration (tested)
+    boardReach.ts          # per-board reach: lean normalization, grounded, storage (tested)
+    reachCalibration.ts    # Calibrate board step machine (tested)
     KeyboardTiltInput.ts   # desktop dev/testing
     DeviceMotionTiltInput.ts # real phone IMU
   game/

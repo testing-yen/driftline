@@ -164,4 +164,8 @@ function boot(): void {
   showMenu(input);
 }
 
-boot();
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('sprites')) {
+  void import('./dev/spriteSheet.js').then(({ showSpriteSheet }) => showSpriteSheet(canvas));
+} else {
+  boot();
+}

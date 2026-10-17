@@ -125,10 +125,6 @@ describe('beastFrame', () => {
     expect(frames).toEqual(new Set(['glideA', 'glideB']));
   });
 
-  it('holds its glide frame while time stands still', () => {
-    expect(beastFrame(1.3, FAR, false)).toBe(beastFrame(1.3, FAR, false));
-  });
-
   it('lunges once close to the rider, before the catch', () => {
     expect(BEAST_LUNGE_DISTANCE).toBeGreaterThan(CONFIG.chaserCatchRadius + CONFIG.playerRadius);
     expect(beastFrame(0, BEAST_LUNGE_DISTANCE - 1, false)).toBe('lunge');

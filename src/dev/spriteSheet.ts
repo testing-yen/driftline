@@ -28,7 +28,7 @@ export function showSpriteSheet(canvas: HTMLCanvasElement): void {
     ctx.font = '600 12px system-ui, sans-serif';
     ctx.textBaseline = 'top';
 
-    // In CSS px, matching what the renderer draws for this screen and dpr.
+    // In CSS px, matching what the renderer draws for this screen and dpr (ignoring safe-area insets).
     const gameSize = devicePxPerSpritePx(dpr * viewScale(w, 0)) / dpr;
     let y = GAP;
     y = drawRow(ctx, PLAYER, player, y, bigZoom(PLAYER, w));

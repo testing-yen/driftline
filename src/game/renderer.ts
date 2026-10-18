@@ -241,7 +241,13 @@ export class Renderer {
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawSpeedGauge(gauge, time);
-    // A jump near the right edge rises past the gauge; the rider stays in front so the flip shows.
+    // The banner and the warning share one alert slot; lifting the edge matters more than the celebration.
+    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
+    else if (phase === 'playing' && newBestAt !== null) {
+      const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
+      if (t >= 0 && t < 1) this.drawNewBestBanner(t, rider);
+    }
+    // A jump rises past the gauge and through the alert slot; the rider stays in front so the flip shows.
     ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.translate(sx, sy);
     this.drawPlayer(w / 2 + player.x, playerScreenY, player);
@@ -249,12 +255,6 @@ export class Renderer {
     this.drawHud(score, streak, player, phase, best);
     if (phase === 'playing' && callout !== null) this.drawCallout(callout, rider, time);
     if (phase === 'playing' && airLean !== null) this.drawAirLean(airLean, rider);
-    // The banner and the warning share one alert slot; lifting the edge matters more than the celebration.
-    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
-    else if (phase === 'playing' && newBestAt !== null) {
-      const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
-      if (t >= 0 && t < 1) this.drawNewBestBanner(t, rider);
-    }
   }
 
   /**

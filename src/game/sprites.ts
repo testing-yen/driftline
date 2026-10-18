@@ -9,8 +9,6 @@
  * uphill, facing the rider.
  */
 
-import type { FlipDir } from './types.js';
-
 export const TRANSPARENT = '.';
 
 export interface SpriteSheet<F extends string> {
@@ -22,8 +20,17 @@ export interface SpriteSheet<F extends string> {
   readonly frames: Readonly<Record<F, readonly string[]>>;
 }
 
-/** 'front' only shows halfway through a trick, facing back uphill. */
-export type PlayerFrame = 'straight' | 'left' | 'right' | 'front' | 'crashed';
+/** The flip* frames only show during a front flip, in the order FLIP_FRAMES lists them. */
+export type PlayerFrame =
+  | 'straight'
+  | 'left'
+  | 'right'
+  | 'crashed'
+  | 'flipPitch'
+  | 'flipTuck'
+  | 'flipInverted'
+  | 'flipTuckUp'
+  | 'flipOpen';
 export type BeastFrame = 'glideA' | 'glideB' | 'lunge';
 export type RampFrame = 'kicker';
 export type Lean = Extract<PlayerFrame, 'straight' | 'left' | 'right'>;
@@ -143,40 +150,6 @@ export const PLAYER: SpriteSheet<PlayerFrame> = {
       '..........oo.......oo...',
       '........................',
     ],
-    front: [
-      '........................',
-      '..........oooo..........',
-      '........oobbbboo........',
-      '.......obwwbbbbBo.......',
-      '.......oowwwwwwoo.......',
-      '.......oBwwwwwwBo.......',
-      '.....oooBBBBBBBBooo.....',
-      '....oOOOoBBBBBBoOOdo....',
-      '...oOOOOOOooooOOOOOdo...',
-      '...oOOOOOOOddOOOOOOdo...',
-      '..oOOoOOOOOddOOOOdoOdo..',
-      '..oOOoOOOOOddOOOOdoOdo..',
-      '..oOOoOOOOOddOOOOdoOdo..',
-      '..ooooOOOOOddOOOOdoooo..',
-      '......oddOOOOOOddo......',
-      '......ooBBBBBBBBoo......',
-      '......ooBBBooBBBoo......',
-      '......oBBBo..oBBBo......',
-      '.....oBBBo....oBBBo.....',
-      '....oBBBBBo..oBBBBBo....',
-      '....ooooooo..ooooooo....',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......obo......obo......',
-      '......owo......owo......',
-      '......owo......owo......',
-      '......obo......obo......',
-      '.......o........o.......',
-    ],
     crashed: [
       '........................',
       '.........o..............',
@@ -210,6 +183,176 @@ export const PLAYER: SpriteSheet<PlayerFrame> = {
       '..obboo...........obbo..',
       '..obo..............ooo..',
       '...o....................',
+    ],
+    flipPitch: [
+      '........................',
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '....oooobwbbbbbBoooo....',
+      '...oOOOOoooooooooOOOdo..',
+      '..oOOOOOOOOOOOOOOOOOdo..',
+      '..oOOOOOOOOOOOOOOOOOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOobbbbbbbbbbbBoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..ooooOOOOOOOOOOOdoooo..',
+      '......oddOOOOOOddo......',
+      '......oBBBBBBBBBBo......',
+      '.....oBBBBooooBBBBo.....',
+      '.....oBBBo....oBBBo.....',
+      '....oBBBBBo..oBBBBBo....',
+      '....ooooooo..ooooooo....',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '.......o........o.......',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipTuck: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '......ooo......ooo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '.....ooooo....ooooo.....',
+      '.....oBBBo....oBBBo.....',
+      '....ooBBBBooooBBBBoo....',
+      '.ooo.oBBBBBBBBBBBBo.ooo.',
+      'oBBBooBBBBBBBBBBBBooBBBo',
+      'oBBBoddOOOOOOOOOOddoBBBo',
+      '.oOOoOOOOOOOOOOOOOOoOdo.',
+      '.oOOoOOOOOOOOOOOOOdoOdo.',
+      '.oOOobbbbbbbbbbbbbBoOdo.',
+      '.oOOoOOOOOOOOOOOOOdoOdo.',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '...oOOOOOOOOOOOOOOOdo...',
+      '...oOOOOOOooooOOOOOdo...',
+      '....oOOOoBBBBBBoOOdo....',
+      '.....oooBBBBBBBBooo.....',
+      '.......obwwbbbbBo.......',
+      '.......obwbbbbbBo.......',
+      '........oobbbboo........',
+      '..........oooo..........',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipInverted: [
+      '.......o........o.......',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '....ooooooo..ooooooo....',
+      '....oBBBBBo..oBBBBBo....',
+      '.....oBBBo....oBBBo.....',
+      '......oBBBo..oBBBo......',
+      '......ooBBBooBBBoo......',
+      '......ooBBBBBBBBoo......',
+      '......oddOOOOOOddo......',
+      '..ooooOOOOOddOOOOdoooo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '...oOOOOOOOddOOOOOOdo...',
+      '...oOOOOOOooooOOOOOdo...',
+      '....oOOOoBBBBBBoOOdo....',
+      '.....oooBBBBBBBBooo.....',
+      '.......oBwwwwwwBo.......',
+      '.......oowwwwwwoo.......',
+      '.......obwwbbbbBo.......',
+      '........oobbbboo........',
+      '..........oooo..........',
+      '........................',
+    ],
+    flipTuckUp: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '.......oowwwwwwoo.......',
+      '.......oBwwwwwwBo.......',
+      '.....oooBBBBBBBBooo.....',
+      '....oOOOoBBBBBBoOOdo....',
+      '...oOOOOOOooooOOOOOdo...',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoBBBBBooBBBBBoOdo..',
+      '..oBBoBBBBBooBBBBBoBBo..',
+      '..oBBoBBBBBooBBBBBoBBo..',
+      '..ooooBBBBBooBBBBBoooo..',
+      '......oBBBBooBBBBo......',
+      '.....oowwoo..oowwoo.....',
+      '......obbo....obbo......',
+      '.......oo......oo.......',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipOpen: [
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '.......obwbbbbbBo.......',
+      '.......oBBBBBBBBo.......',
+      '.....oooBbbbbbbBooo.....',
+      '....oOOOoBBBBBBoOOdo....',
+      '...oOOOOOOooooOOOOOdo...',
+      '...oOOOOOOOOOOOOOOOdo...',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOobbbbbbbbbbbBoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..ooooOOOOOOOOOOOdoooo..',
+      '......oddOOOOOOddo......',
+      '.....ooBBBBBBBBBBoo.....',
+      '....oBBBBooooooBBBBo....',
+      '....oBBBBo....oBBBBo....',
+      '....oBBBBBo..oBBBBBo....',
+      '....ooooooo..ooooooo....',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '.......o........o.......',
+      '........................',
+      '........................',
+      '........................',
     ],
   },
 };
@@ -383,17 +526,18 @@ export const RAMP: SpriteSheet<RampFrame> = {
   },
 };
 
-/** The trick seen from behind, for now a turn: side-on one way, facing uphill, side-on the other way, back again. */
-const FLIP_FRAMES: Readonly<Record<FlipDir, readonly PlayerFrame[]>> = {
-  right: ['straight', 'right', 'front', 'left'],
-  left: ['straight', 'left', 'front', 'right'],
-};
+/**
+ * A front flip seen from behind: the rider ducks their head and pitches
+ * forward, tucks with their back to us and head downhill, goes upside down
+ * (front to us, skis pointing uphill), tucks again facing us with the head
+ * back uphill, then opens out to land.
+ */
+const FLIP_FRAMES: readonly PlayerFrame[] = ['flipPitch', 'flipTuck', 'flipInverted', 'flipTuckUp', 'flipOpen'];
 
 /** Rider frame `progress` (0..1) of the way through a flip; a finished flip rides straight. */
-export function flipFrame(dir: FlipDir, progress: number): PlayerFrame {
-  const frames = FLIP_FRAMES[dir];
+export function flipFrame(progress: number): PlayerFrame {
   if (progress >= 1) return 'straight';
-  return frames[Math.floor(Math.max(0, progress) * frames.length)];
+  return FLIP_FRAMES[Math.floor(Math.max(0, progress) * FLIP_FRAMES.length)];
 }
 
 /** World px per sprite px the renderer aims for; it rounds so each sprite px is whole device px. */

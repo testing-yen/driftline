@@ -389,7 +389,7 @@ export class Renderer {
     const arc = airArc(jump, this.frame.time);
     this.drawAirShadow(x, y, arc);
     const flip = flipProgress(jump, this.frame.time);
-    const frame = jump.flip === null || flip === null ? 'straight' : flipFrame(jump.flip.dir, flip);
+    const frame = flip === null ? 'straight' : flipFrame(flip);
     const peak = Math.min(AIR_PEAK_PX_PER_S * jump.duration, AIR_PEAK_MAX_FRACTION * y);
     this.drawSprite(PLAYER, this.playerFrames, frame, x, y - peak * arc, 1 + AIR_GROW * arc);
   }

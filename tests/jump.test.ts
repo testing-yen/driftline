@@ -69,15 +69,15 @@ describe('updateAir', () => {
     expect(updateAir(base(), -SOFT, false, 0.1).flip).toBeNull();
   });
 
-  it('starts a flip in the lean direction past trickLeanFraction', () => {
-    expect(updateAir(base(), HARD, false, 0.1).flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
-    expect(updateAir(base(), -HARD, false, 0.1).flip).toMatchObject({ dir: 'left', startedAt: 0.1 });
+  it('starts a flip past trickLeanFraction either way', () => {
+    expect(updateAir(base(), HARD, false, 0.1).flip).toMatchObject({ startedAt: 0.1 });
+    expect(updateAir(base(), -HARD, false, 0.1).flip).toMatchObject({ startedAt: 0.1 });
   });
 
   it('starts only one flip per jump', () => {
     const first = updateAir(base(), HARD, false, 0.1);
     const again = updateAir(updateAir(first, 0, false, 0.2), -HARD, false, 0.7);
-    expect(again.flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(again.flip).toMatchObject({ startedAt: 0.1 });
   });
 
   it('does not flip from a lean already held at takeoff (steering onto the ramp)', () => {
@@ -92,7 +92,7 @@ describe('updateAir', () => {
     jump = updateAir(jump, held + CONFIG.trickLeanFraction - 0.05, false, 0.05);
     expect(jump.flip).toBeNull();
     jump = updateAir(jump, held + CONFIG.trickLeanFraction + 0.05, false, 0.1);
-    expect(jump.flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(jump.flip).toMatchObject({ startedAt: 0.1 });
   });
 
   it('never flips from easing a held lean back toward level', () => {
@@ -103,7 +103,7 @@ describe('updateAir', () => {
 
   it('can flip the other way from a lean held at takeoff', () => {
     const jump = updateAir(takeoff(TYPICAL, 0, 0.5), -HARD, false, 0.1);
-    expect(jump.flip).toMatchObject({ dir: 'left', startedAt: 0.1 });
+    expect(jump.flip).toMatchObject({ startedAt: 0.1 });
   });
 
   it('starts no flip while a side edge is grounded', () => {
@@ -133,7 +133,7 @@ describe('landing', () => {
     const startAt = duration - CONFIG.flipDurationS / 2;
     const late = (t: number) => (t > startAt && t < startAt + 0.05 ? -HARD : 0);
     const { jump, outcome } = fly(late);
-    expect(jump.flip?.dir).toBe('left');
+    expect(jump.flip).not.toBeNull();
     expect(flipProgress(jump, jump.startedAt + jump.duration)).toBe(1);
     expect(outcome).toBe('trick');
   });

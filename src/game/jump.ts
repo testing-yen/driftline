@@ -51,16 +51,13 @@ export function trickThresholds(jump: Jump): { left: number; right: number } {
  */
 export function updateAir(jump: Jump, lean: number, sideGrounded: boolean, time: number): Jump {
   const { left, right } = trickThresholds(jump);
-  const dir = lean >= right ? 'right' : lean <= left ? 'left' : null;
   const airLeft = jump.startedAt + jump.duration - time;
-  const startsFlip = jump.flip === null && dir !== null && !sideGrounded && airLeft >= CONFIG.minFlipS;
+  const startsFlip =
+    jump.flip === null && (lean >= right || lean <= left) && !sideGrounded && airLeft >= CONFIG.minFlipS;
   return {
     ...jump,
     touchedFloor: jump.touchedFloor || sideGrounded,
-    flip:
-      startsFlip && dir !== null
-        ? { dir, startedAt: time, endsAt: time + Math.min(CONFIG.flipDurationS, airLeft) }
-        : jump.flip,
+    flip: startsFlip ? { startedAt: time, endsAt: time + Math.min(CONFIG.flipDurationS, airLeft) } : jump.flip,
   };
 }
 

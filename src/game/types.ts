@@ -37,8 +37,6 @@ export interface Ramp {
   halfWidth: number;
 }
 
-export type FlipDir = 'left' | 'right';
-
 /** Times are game time in seconds. */
 export interface Jump {
   startedAt: number;
@@ -47,7 +45,7 @@ export interface Jump {
   /** Locked speed for the whole jump, px/s. */
   speed: number;
   /** The one flip this jump may have, from when it started. */
-  flip: { dir: FlipDir; startedAt: number; endsAt: number } | null;
+  flip: { startedAt: number; endsAt: number } | null;
   /** A side edge hit the floor at some point in the air, which voids the trick. */
   touchedFloor: boolean;
   /**

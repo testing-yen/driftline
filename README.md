@@ -13,8 +13,9 @@ avalanche golem picks up your scent, and it *will* catch you. A run lasts about
 Snow kickers on the slope launch you into the air for about 1.6 seconds. In the
 air you fly over trees and rocks at 1.3× your takeoff speed, which buys
 distance from the golem, and you can't steer. Leaning sideways
-`trickLeanFraction` of full lean further than you were at takeoff flips you
-for a bonus; the flip always finishes by touchdown. A meter under the rider
+`trickLeanFraction` of full lean further than you were at takeoff, either
+way, throws a front flip for a bonus: you tuck, go upside down and open out
+again, and the flip always finishes by touchdown. A meter under the rider
 shows your lean against both flip thresholds while airborne, "FLIP!" pops
 when one starts, and "EDGE DOWN" shows when a side edge on the floor blocks
 it (only the side edges void a trick). Land level: leaning hard at
@@ -190,7 +191,9 @@ scratch for this project:
   its own README states the game and assets remain the property of the
   original author.)
 - All art is drawn in code: geometric pines, rocks and gates, plus our own
-  pixel-art rider and chaser written as character maps in `sprites.ts`. The
+  pixel-art rider (including the front-flip frames: pitch, tuck, inverted,
+  tuck, open) and chaser written as character maps in `sprites.ts`. The flip
+  frames are drawn from our own rider, not from SkiFree's trick sprites. The
   chaser is an original "avalanche golem" (a squat heap of packed snow and
   ice shards), not the SkiFree yeti. It uses a plain early-90s palette of
   white, grey, black and red. Only the colours are period style; the creature

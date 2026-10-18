@@ -230,7 +230,7 @@ export class Game {
       this.phase = 'gameover';
       this.onGameOver?.({
         score: Math.floor(this.score),
-        distanceM: Math.floor(this.player.y / 10),
+        distanceM: Math.floor(this.player.y / CONFIG.pxPerMeter),
         gatesCleared: this.gatesCleared,
         durationS: this.time,
       });

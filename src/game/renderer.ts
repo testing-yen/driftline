@@ -261,8 +261,8 @@ export class Renderer {
     ctx.fillRect(w / 2 - half - 26, -20, 18, h + 40);
     ctx.fillRect(w / 2 + half + 8, -20, 18, h + 40);
 
-    // Speed lines, denser at speed.
-    const lines = Math.floor(player.speed / 60);
+    // Speed lines, denser at speed. Per unit of downhill scale, so a faster-scrolling slope does not fill with them.
+    const lines = Math.floor(player.speed / (60 * CONFIG.downhillScale));
     ctx.strokeStyle = 'rgba(140,170,210,0.35)';
     ctx.lineWidth = 3;
     for (let i = 0; i < lines; i += 1) {
@@ -407,7 +407,7 @@ export class Renderer {
 
   private drawChaser(x: number, y: number): void {
     const { time, caught, rider } = this.frame;
-    const frame = beastFrame(time, Math.hypot(rider.x - x, rider.y - y), caught);
+    const frame = beastFrame(time, rider.x - x, rider.y - y, caught);
     this.drawSprite(BEAST, this.beastFrames, frame, x, y);
   }
 
@@ -456,7 +456,7 @@ export class Renderer {
     ctx.textAlign = 'left';
     ctx.fillText(`${Math.floor(score)}`, left, 44);
     ctx.font = '600 22px system-ui, sans-serif';
-    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 76);
+    ctx.fillText(`${Math.floor(player.y / CONFIG.pxPerMeter)} m`, left, 76);
     if (best !== null) {
       const label = `BEST ${best}`;
       ctx.font = '700 20px system-ui, sans-serif';

@@ -179,17 +179,19 @@ describe('beastFrame', () => {
   const FAR = BEAST_LUNGE_DISTANCE * 3;
 
   it('alternates glide frames over time while far away', () => {
-    const frames = new Set([0, 0.25, 0.5, 0.75, 1].map((t) => beastFrame(t, FAR, false)));
+    const frames = new Set([0, 0.25, 0.5, 0.75, 1].map((t) => beastFrame(t, FAR, 0, false)));
     expect(frames).toEqual(new Set(['glideA', 'glideB']));
   });
 
   it('lunges once close to the rider, before the catch', () => {
     expect(BEAST_LUNGE_DISTANCE).toBeGreaterThan(CONFIG.chaserCatchRadius + CONFIG.playerRadius);
-    expect(beastFrame(0, BEAST_LUNGE_DISTANCE - 1, false)).toBe('lunge');
+    expect(beastFrame(0, BEAST_LUNGE_DISTANCE - 1, 0, false)).toBe('lunge');
+    expect(beastFrame(0, 0, BEAST_LUNGE_DISTANCE - 1, false)).toBe('lunge');
+    expect(beastFrame(0, 0, -(BEAST_LUNGE_DISTANCE - 1), false)).toBe('lunge');
   });
 
   it('lunges on the catch whatever the distance', () => {
-    expect(beastFrame(0, FAR, true)).toBe('lunge');
+    expect(beastFrame(0, FAR, 0, true)).toBe('lunge');
   });
 });
 

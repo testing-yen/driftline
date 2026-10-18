@@ -88,7 +88,7 @@ export class World {
    * reach it, and stays off every gate line. Null if no spot turned up.
    */
   private placeRamp(y0: number, gateYs: number[]): Ramp | null {
-    const { rampLength: length, rampClearance: clear, rampHalfWidth: halfWidth } = CONFIG;
+    const { rampLength: length, rampClearanceY: clear, rampHalfWidth: halfWidth } = CONFIG;
     const top = y0 + length + clear;
     const span = CONFIG.chunkHeight - length - 2 * clear;
     for (let tries = 0; tries < PLACEMENT_TRIES; tries += 1) {
@@ -104,10 +104,10 @@ export class World {
 
 /** Does a circle at (x, y) with radius r reach into the clear zone around the ramp's footprint? */
 function inClearZone(ramp: Ramp, x: number, y: number, r: number): boolean {
-  const reach = CONFIG.rampClearance + r;
+  const reachY = CONFIG.rampClearanceY + r;
   return (
-    Math.abs(x - ramp.x) < ramp.halfWidth + reach &&
-    y > ramp.y - CONFIG.rampLength - reach &&
-    y < ramp.y + reach
+    Math.abs(x - ramp.x) < ramp.halfWidth + CONFIG.rampClearanceX + r &&
+    y > ramp.y - CONFIG.rampLength - reachY &&
+    y < ramp.y + reachY
   );
 }

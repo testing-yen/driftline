@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import { leanFromAngles, type BoardReach } from './boardReach.js';
 import type { LeanDegrees, TiltInput, TiltSample } from './TiltInput.js';
-import { LowPassFilter, NeutralCalibrator, TiltRange } from './tiltMath.js';
+import { LowPassFilter, NeutralCalibrator, TiltRange, anglesIn } from './tiltMath.js';
 
 type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
   requestPermission?: () => Promise<'granted' | 'denied'>;
@@ -15,7 +15,9 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
  *   - roll  (rotation around the long axis) -> steer left/right
  *   - pitch (rotation around the short axis) -> tuck / brake
  *
- * Derived from accelerationIncludingGravity:
+ * Derived from accelerationIncludingGravity, measured in the frame of the
+ * gravity vector averaged at neutral (see neutralFrame), so the lean is from
+ * however the phone was held when it calibrated. Lying flat face up that is
  *   rollDeg  = atan2(ax, -az)   (positive = tilted right)
  *   pitchDeg = atan2(ay, -az)   (positive = top edge down = tuck forward)
  *
@@ -91,14 +93,12 @@ export class DeviceMotionTiltInput implements TiltInput {
       const a = e.accelerationIncludingGravity;
       if (!a || a.x == null || a.y == null || a.z == null) return;
 
-      const rollDeg = (Math.atan2(a.x, -a.z) * 180) / Math.PI;
-      const pitchDeg = (Math.atan2(a.y, -a.z) * 180) / Math.PI;
+      const gravity = { x: a.x, y: a.y, z: a.z };
+      this.calibrator.addSample(gravity);
+      const { roll, pitch } = anglesIn(this.calibrator.frame, gravity);
 
-      this.calibrator.addSample(rollDeg, pitchDeg);
-      const off = this.calibrator.offset();
-
-      const xDeg = this.filterX.push(rollDeg - off.x);
-      const yDeg = this.filterY.push(pitchDeg - off.y);
+      const xDeg = this.filterX.push(roll);
+      const yDeg = this.filterY.push(pitch);
       this.angles.now = { x: xDeg, y: yDeg };
       if (this.calibrator.isCalibrated) this.angles.range.record(xDeg, yDeg);
       this.tilt = leanFromAngles(xDeg, yDeg, this.angles.reach);

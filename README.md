@@ -173,7 +173,7 @@ scrolls past. Every downhill speed and distance in `makeConfig` is a base value
 the same rate per second, steering between them is just as hard, jumps last as
 long, the golem catches you just as soon, and score and metres keep their pace
 (they count px ÷ K). Only the on-screen speed changes. To compare on the phone,
-open the dev server with `?speedx=1`, `2`, `2.5` or `3`; production builds
+open the dev server with `?speedx=1`, `2`, `2.5`, `3` or `3.5`; production builds
 ignore the parameter.
 
 ## Architecture

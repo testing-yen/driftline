@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { makeConfig } from '../src/config.js';
 import { circlesCollide, gateCrossed, gatePassed, rampHit, sweptHitsObstacle } from '../src/game/collisions.js';
+import { SPEEDX_CHOICES } from '../src/dev/speedx.js';
 import type { Obstacle } from '../src/game/types.js';
 
 /** The longest move a rider makes on the snow in one 1/60 s frame: landing at air speed, at the largest dev downhill scale. */
-const FASTEST = makeConfig(3);
+const FASTEST = makeConfig(Math.max(...SPEEDX_CHOICES));
 const MAX_STEP = (FASTEST.fullLeanSpeed * FASTEST.airSpeedBoost) / 60;
 const RIDER_R = FASTEST.playerRadius;
 /** The smallest tree the world places: radius 12 at scale 0.8. */

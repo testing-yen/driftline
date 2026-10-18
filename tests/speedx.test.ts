@@ -8,6 +8,7 @@ describe('parseSpeedx', () => {
     ['?speedx=2', 2],
     ['?speedx=2.5', 2.5],
     ['?sprites&speedx=3', 3],
+    ['?speedx=3.5', 3.5],
   ])('reads %s as K = %s', (search, k) => {
     expect(parseSpeedx(search)).toBe(k);
   });

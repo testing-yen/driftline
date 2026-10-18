@@ -2,7 +2,7 @@ import { CONFIG } from '../config.js';
 import { circlesCollide } from './collisions.js';
 
 /**
- * The "shadow beast" — an original chaser entity (NOT the SkiFree yeti).
+ * The "avalanche golem" — an original chaser entity (NOT the SkiFree yeti).
  *
  * It appears after the player has travelled chaserTriggerDistance and homes
  * in on the player. It is slightly faster than coasting speed, so passive

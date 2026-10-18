@@ -1,12 +1,12 @@
 /**
  * Pixel-art sprites for the rider and the beast, plus the rules that pick a
  * frame. ORIGINAL ART drawn for Driftline: nothing here derives from SkiFree,
- * and no beast is a yeti.
+ * and the beast is not a yeti.
  *
  * A frame is a list of rows with one character per pixel, looked up in the
  * sheet's palette; '.' is transparent. Downhill is down the screen, so the
- * rider shows their back with ski tips pointing down, and the beast's head
- * and claws lead downhill with its shadow trailing uphill.
+ * rider shows their back with ski tips pointing down. The beast chases from
+ * uphill, facing the rider.
  */
 
 export const TRANSPARENT = '.';
@@ -176,131 +176,12 @@ export const PLAYER: SpriteSheet<PlayerFrame> = {
   },
 };
 
-export const SHADOW_BEAST: SpriteSheet<BeastFrame> = {
-  width: 32,
-  height: 32,
-  anchor: { x: 16, y: 18 },
-  palette: {
-    o: '#07040b', // outline
-    k: '#22143a', // shadow body
-    m: '#4a2c73', // rim light
-    p: '#d9c9f0', // horns, talons
-    r: '#ff3b3b', // eye glow and maw, the gauge's chaser red
-    y: '#fff1b0', // hot eye core, fangs
-  },
-  frames: {
-    glideA: [
-      '.............omo................',
-      '......oo....omko...........o....',
-      '.....ommo...omko.........oomo...',
-      '......omo...omkoo......oommo....',
-      '......omo...omkmmo...oommko.....',
-      '.....omkmo..omkkkmo.ommkko......',
-      '.....omkko...omkkkoomkkko.......',
-      '.....omkkmo..omkkkmmkkko........',
-      '......omkkmoomkkkkkkkkko........',
-      '......omkkkmomkkkkkkkkko........',
-      '.......omkkkmkkkkkkkkkko........',
-      '......omkkkkkkkkkkkkkkkmo.......',
-      '......ompkkkkkkkkkkkkkpko.......',
-      '.....omkkpkkkkkkkkkkkpkkmo......',
-      '.....omkkppkkkkkkkkkppkkko......',
-      '....omkkkkppkkkkkkkppkkkkmo.....',
-      '....omkkkkppkkkkkkkppkkkko......',
-      '....omkkkkkppkkkkkppkkkkkmo.....',
-      '....omkkkkkkkkkkkkkkkkkkkko.....',
-      '...omkkkkkkkkkkkkkkkkkkkkko.....',
-      '...omkkkoomkkrrkkrrkkomkkko.....',
-      '...omkkkoomryyrkkryyroomkko.....',
-      '...omkko.omrrkkkkkkrroomkko.....',
-      '..omkkko..omkkkkkkkko.omkko.....',
-      '..opkko....omkkkkkko..opkko.....',
-      '..oppopo....oomkkoo...oppopo....',
-      '.opopopo......ooo.....opoopo....',
-      '.opopopo...............oopopo...',
-      '..oopoo.................opoo....',
-      '....o....................o......',
-      '................................',
-      '................................',
-    ],
-    glideB: [
-      '...............omo..............',
-      '...o...........ommo....oo.......',
-      '..omoo.........omko...ommo......',
-      '...ommoo......oomko...omo.......',
-      '....ommmoo...ommkko...omo.......',
-      '.....omkmmo.omkkkko..omkmo......',
-      '......omkkmoomkkko...omkko......',
-      '.......omkkmmkkkko..omkkko......',
-      '.......omkkkkkkkkmoomkkko.......',
-      '.......omkkkkkkkkkomkkkko.......',
-      '.......omkkkkkkkkkmkkkko........',
-      '......omkkkkkkkkkkkkkkkmo.......',
-      '......ompkkkkkkkkkkkkkpko.......',
-      '.....omkkpkkkkkkkkkkkpkkmo......',
-      '.....omkkppkkkkkkkkkppkkko......',
-      '....omkkkkppkkkkkkkppkkkkmo.....',
-      '.....omkkkppkkkkkkkppkkkkko.....',
-      '....omkkkkkppkkkkkppkkkkkko.....',
-      '....omkkkkkkkkkkkkkkkkkkkko.....',
-      '....omkkkkkkkkkkkkkkkkkkkkmo....',
-      '....omkkkomkkrrkkrrkkoomkkko....',
-      '....omkkoomryyrkkryyroomkkko....',
-      '....omkkoomrrkkkkkkrro.omkko....',
-      '....omkko.omkkkkkkkko..omkkmo...',
-      '....omkpo..omkkkkkko....omkpo...',
-      '...opoppo...oomkkoo....opoppo...',
-      '...opoopo.....ooo......opopopo..',
-      '..opopoo...............opopopo..',
-      '...oopo.................oopoo...',
-      '.....o....................o.....',
-      '................................',
-      '................................',
-    ],
-    lunge: [
-      '..............omo...............',
-      '.....o.......omko.........o.....',
-      '....omo......omko.......oomo....',
-      '.....omo.....omko......ommo.....',
-      '.....ommo....omkmo....omko......',
-      '.....omkmo...omkko...omkko......',
-      '......omkmo..omkkmo.omkko.......',
-      '......omkkmoomkkkkoomkko........',
-      '......omkkkoomkkkkoomkko........',
-      '.......omkkmomkkkkomkkko........',
-      '.......omkkkmkkkkkmkkkko........',
-      '.......omkkkkkkkkkkkkkkmo.......',
-      '......omkkkkkkkkkkkkkkkko.......',
-      '.....omkkkkkkkkkkkkkkkkkmo......',
-      '.....omkpkkkkkkkkkkkkkpkko......',
-      '....omkkkpkkkkkkkkkkkpkkkmo.....',
-      '...omkkkkppkkkkkkkkkppkkkkmo....',
-      '...omkkkkkppkkkkkkkppkkkkkko....',
-      '..omkkkkkkkppkkkkkppkkkkkkkmo...',
-      '..omkkkomkkppkkkkkppkkkomkkko...',
-      '.omkkkkooomkkkkkkkkkkooomkkkmo..',
-      '.omkkko..omkkkkkkkkkko..omkkko..',
-      'omkkko...omkkrrkkrrkko...omkkmo.',
-      'mkkko....omryyrkkryyro....omkkmo',
-      'kkkko.....orrkkkkkkrr.....omkkko',
-      'kkko......omkyryyryko......omkko',
-      'ppppo......oorrrrrro......oppppp',
-      'poopo........oroor........opoopo',
-      'poopo.....................opoopo',
-      'po.o.......................o.opo',
-      'o.............................o.',
-      '................................',
-    ],
-  },
-};
-
 /**
- * Candidate beasts in an early-1990s Windows-era palette: white body, two
- * greys, black outline, one red accent. Original creatures, none of them a yeti or any
- * other white ape. Each frame bakes in a soft ground shadow ('s') so a white
- * beast still separates from white snow.
+ * The beast's early-1990s Windows-era palette: white body, two greys, black
+ * outline, one red accent. Each frame bakes in a soft ground shadow ('s') so a
+ * white beast still separates from white snow.
  */
-export const CANDIDATE_PALETTE: Readonly<Record<string, string>> = {
+const BEAST_PALETTE: Readonly<Record<string, string>> = {
   o: '#000000', // outline
   w: '#ffffff', // body
   l: '#c0c0c0', // light shade
@@ -309,124 +190,12 @@ export const CANDIDATE_PALETTE: Readonly<Record<string, string>> = {
   s: '#b4c3da', // ground shadow
 };
 
-/** Frost Wraith: a hooded snow spirit gliding on a tattered cloak; the hem sways, and it flares with claws out to lunge. */
-export const WRAITH_BEAST: SpriteSheet<BeastFrame> = {
-  width: 32,
-  height: 32,
-  anchor: { x: 16, y: 18 },
-  palette: CANDIDATE_PALETTE,
-  frames: {
-    glideA: [
-      '.......................ooo......',
-      '............ooooooooooowwlo.....',
-      '..........oolwwwwwwwwwwwlo......',
-      '.........olwwwwwwwwwwlooo.......',
-      '........olwwwwwwwwwwwwlo........',
-      '.......olwwwwwwwwwwwwwwlo.......',
-      '.......olwwwwgoooogwwwwlo.......',
-      '.......olwwwgoooooogwwwlo.......',
-      '......olwwwgorroorrogwwwlo......',
-      '......olwwwgoorooroogwwwlo......',
-      '......olwwwgoooooooogwwwlo......',
-      '......oglwwwgoooooogwwwlgo......',
-      '.....oglwwwwwggooggwwwwwlgo.....',
-      '.....oglwwwwwwwwwwwwwwwwlgo.....',
-      '...oogllwwwwwwwwwwwwwwwwllgoo...',
-      '..ogllwwolwwwwwwwwwwwwlowwllgo..',
-      '.oglwwwwolwwwwwwwwwwwwlowwwwlgo.',
-      '.oglwwwwolwwwlwwwwlwwwlowwwwlgo.',
-      '.oglwwwwolwwwlwwwwlwwwlowwwwlgo.',
-      '.oggllllolwwwlwwwwlwwwlollllggo.',
-      '..ololololwwwlwwwwlwwwlolololo..',
-      '..ololololwwwlwwwwlwwwlolololo..',
-      '...oolooglwwwlwwwwlwwwlgooloo...',
-      '.....ooglwwwwlwwwwlwwwwlgoo.....',
-      '....oglwwwwwlwwwwlwwwwwlgo......',
-      '...oglwwwwwwlwwwwlwwwwwwlgo.....',
-      '..olwwgolwwglwwglwwgolwwgo......',
-      '..olwgoolwgolwgolwgoolwgo.......',
-      '..oloo.oloooloooloo.oloo........',
-      '...o....o..sosssosssso..........',
-      '.........ssssssssssssss.........',
-      '................................',
-    ],
-    glideB: [
-      '........................oo......',
-      '............oooooooooooowlo.....',
-      '..........oolwwwwwwwwwwwwlo.....',
-      '.........olwwwwwwwwwwlooolo.....',
-      '........olwwwwwwwwwwwwlo.o......',
-      '.......olwwwwwwwwwwwwwwlo.......',
-      '.......olwwwwgoooogwwwwlo.......',
-      '.......olwwwgoooooogwwwlo.......',
-      '......olwwwgorroorrogwwwlo......',
-      '......olwwwgoorooroogwwwlo......',
-      '......olwwwgoooooooogwwwlo......',
-      '......oglwwwgoooooogwwwlgo......',
-      '.....oglwwwwwggooggwwwwwlgo.....',
-      '.....oglwwwwwwwwwwwwwwwwlgo.....',
-      '...oogllwwwwwwwwwwwwwwwwllgoo...',
-      '..ogllwwolwwwwwwwwwwwwlowwllgo..',
-      '.oglwwwwolwwwwwwwwwwwwlowwwwlgo.',
-      '.oglwwwwolwwwlwwwwlwwwlowwwwlgo.',
-      '.oglwwwwolwwwlwwwwlwwwlowwwwlgo.',
-      '.oggllllolwwwlwwwwlwwwlollllggo.',
-      '..ololololwwwlwwwwlwwwlolololo..',
-      '..ololololwwwlwwwwlwwwlolololo..',
-      '...oolooglwwwlwwwwlwwwlgooloo...',
-      '.....ooglwwwwlwwwwlwwwwlgoo.....',
-      '......oglwwwwwlwwwwlwwwwwlgo....',
-      '.....oglwwwwwwlwwwwlwwwwwwlgo...',
-      '.....olwwgolwwglwwglwwgolwwgo...',
-      '......oolwgoolwgolwgolwgoolwgo..',
-      '........oolo.oolooolooolo.oolo..',
-      '..........ossssosssos..o....o...',
-      '.........ssssssssssssss.........',
-      '................................',
-    ],
-    lunge: [
-      '........................oo......',
-      '............oooooooooooowlo.....',
-      '..........oolwwwwwwwwwwwwlo.....',
-      '.........olwwwwwwwwwwlooolo.....',
-      '........olwwwwwwwwwwwwlo.o......',
-      '.......olwwwwwwwwwwwwwwlo.......',
-      '.......olwwwwgoooogwwwwlo.......',
-      '.......olwwwgoooooogwwwlo.......',
-      '......olwwwgorroorrogwwwlo......',
-      '......olwwwgorroorrogwwwlo......',
-      '......olwwwgoooooooogwwwlo......',
-      '......oglwwwgoooooogwwwlgo......',
-      '.....oglwwwwwoooooowwwwwlgo.....',
-      '...oogglwwwwwwwwwwwwwwwwlggoo...',
-      '..ogllwwwwwwwwwwwwwwwwwwwwllgo..',
-      '.ogllwwwwwolwwwwwwwwlowwwwwllgo.',
-      'oglwwwwwwwolwwwwwwwwlowwwwwwwlgo',
-      'oglwwggllwolwlwwwwlwlowllggwwlgo',
-      '.ogglololoolwlwwwwlwloolololggo.',
-      '.ololololoolwlwwwwlwloololololo.',
-      '.olololoooglwlwwwwlwlgooolololo.',
-      '..o.o.o..oglwlwwwwlwlgo..o.o.o..',
-      '........oglwwlwwwwlwwlgo........',
-      '.......oglwwwlwwwwlwwwlgo.......',
-      '......oglwwwwlwwwwlwwwwlgo......',
-      '...oooglwwwwwlwwwwlwwwwwlgooo...',
-      '..oggllwwwwwwwwwwwwwwwwwwllggo..',
-      '..olwgoolwgolwgoolwgolwgoolwgo..',
-      '..owgo.owgoowgo.owgoowgo.owgo...',
-      '...olo..olo.olo..olo.olo..olo...',
-      '....o....osssossssossso....o....',
-      '.......ssssssssssssssssss.......',
-    ],
-  },
-};
-
 /** Avalanche Golem: a squat heap of packed snow lumps and ice shards that tumble as it rolls; lunges with its icicle maw wide. */
-export const GOLEM_BEAST: SpriteSheet<BeastFrame> = {
+export const BEAST: SpriteSheet<BeastFrame> = {
   width: 32,
   height: 32,
   anchor: { x: 16, y: 19 },
-  palette: CANDIDATE_PALETTE,
+  palette: BEAST_PALETTE,
   frames: {
     glideA: [
       '................................',
@@ -532,132 +301,6 @@ export const GOLEM_BEAST: SpriteSheet<BeastFrame> = {
     ],
   },
 };
-
-/** Snow Wolf, three-quarter overhead, galloping down and to the left at the rider; lunges with forelegs flung out and jaws open. */
-export const WOLF_BEAST: SpriteSheet<BeastFrame> = {
-  width: 32,
-  height: 32,
-  anchor: { x: 16, y: 16 },
-  palette: CANDIDATE_PALETTE,
-  frames: {
-    glideA: [
-      '...........................oo...',
-      '..........................oggo..',
-      '..........................owwwo.',
-      '.........................owgglo.',
-      '........................owwwwwo.',
-      '........................owwwwgo.',
-      '..................oooooowwgggos.',
-      '................oowwwwwwwwwwoss.',
-      '..............oowwwwwwwwgwwlos..',
-      '.............owwwwwwwwwwwwoos...',
-      '............owwwwwwwwwwwwloss...',
-      '.........o.owwwwwwwwwwwwwlo.....',
-      '.....o..owowwwwwwwwwwwwwwgo.....',
-      '....owo.owlwwwwwwwwwwwwlggo.....',
-      '....owloowglwwwwwwwwwllglgo.....',
-      '....owglowgglwwwwwwwwwwoolgo....',
-      '.....owwggggwwwwllwwwlossolgo...',
-      '....owwgrwrwgwwwllllllos..olgo..',
-      '....owwwwwwwgwwwllloowlo..oggo..',
-      '....owwwwwwwgwwlloosowlo...oos..',
-      '....owwwwwwlglgoosss.owlo...ss..',
-      '...owwwwgwlgowloss...owlo.......',
-      '..oowwwooooowlos......owlo......',
-      '...owlgosssowlos......owlo......',
-      '....ooos..owlos.......olgo......',
-      '.....sss.owloss........oos......',
-      '.........owlos..........ss......',
-      '........owlos...................',
-      '........olgos...................',
-      '.........oos....................',
-      '..........ss....................',
-      '................................',
-    ],
-    glideB: [
-      '................................',
-      '............................oo..',
-      '...........................oggo.',
-      '..........................owgwwo',
-      '........................oowwwgo.',
-      '..................oooooowwgwwlos',
-      '................oowwwwwwwwwglos.',
-      '..............oowwwwwwwwgwwwoss.',
-      '.............owwwwwwwwwwgglgos..',
-      '............owwwwwwwwwwwwloos...',
-      '...........owwwwwwwwwwwwwloss...',
-      '.........oowwwwwwwwwwwwwwgo.....',
-      '.....o..owwwwwwwwwwwwwwlgos.....',
-      '....owo.owlwwwwwwwwwwllggos.....',
-      '....owloowglwwwwwwwwwwwlgo......',
-      '....owglgwgglwwwllwwwlolgo......',
-      '....owwwwwwwgwwwllllloolgo......',
-      '....owwgrwrwgwwwllllosolgo......',
-      '....owwwwwwwgwwllowlosolgo......',
-      '....owwwwwwlglglowlos.olgo......',
-      '...owwwwwwlggowlowlos.oggo......',
-      '..owwwwooooolgowllos...oos......',
-      '..oowlossssolgowllos....ss......',
-      '....ooss...olgowlgo.............',
-      '.....ss....olgoowlo.............',
-      '...........oggoowlo.............',
-      '............oosowlo.............',
-      '.............ssolgo.............',
-      '................oos.............',
-      '.................ss.............',
-      '................................',
-      '................................',
-    ],
-    lunge: [
-      '...........................oo...',
-      '..........................oggo..',
-      '..........................owwwo.',
-      '.........................owgglo.',
-      '........................owwwwwo.',
-      '........................owwwwgo.',
-      '..................oooooowwgggos.',
-      '................oowwwwwwwwwwoss.',
-      '..............oowwwwwwwwgwwlos..',
-      '.............owwwwwwwwwwwwoos...',
-      '............owwwwwwwwwwwwloss...',
-      '...........owwwwwwwwwwwwwlo.....',
-      '..........owwwwwwwwwwwwwwgo.....',
-      '.........owwwwwwwwwwwwwlglgoo...',
-      '.....o..owwwwwwwwwwwwllgoollgo..',
-      '....owo.owlwwwwwwwwwwwwossoolgo.',
-      '....owlowwglwwwwllwwwlwlo..oggo.',
-      '....owglwwgglwwwllllloowlo..oos.',
-      '...owwwwwwwgwwwwllloossowlo..ss.',
-      '...owwwgrwrgwwwlloosss..owlo....',
-      '..owwwwwwwwgllgoosss.....owlo...',
-      '.owwwwlwwwlgloosss.......olgo...',
-      '.oowwlwwwlglosss..........oos...',
-      '.owowowoowloss.............ss...',
-      '..orrrrolloss...................',
-      '..orrrolooss....................',
-      '..owowlgoss.....................',
-      '..olwwgos.......................',
-      '...ooooss.......................',
-      '....ssss........................',
-      '................................',
-      '................................',
-    ],
-  },
-};
-
-export const BEAST_STYLES = ['shadow', 'wraith', 'golem', 'wolf'] as const;
-export type BeastStyle = (typeof BEAST_STYLES)[number];
-
-export const BEASTS: Readonly<Record<BeastStyle, SpriteSheet<BeastFrame>>> = {
-  shadow: SHADOW_BEAST,
-  wraith: WRAITH_BEAST,
-  golem: GOLEM_BEAST,
-  wolf: WOLF_BEAST,
-};
-
-export function isBeastStyle(value: string | null): value is BeastStyle {
-  return (BEAST_STYLES as readonly (string | null)[]).includes(value);
-}
 
 /** World px per sprite px the renderer aims for; it rounds so each sprite px is whole device px. */
 const SPRITE_WORLD_PX = 2.6;

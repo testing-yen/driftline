@@ -3,7 +3,7 @@ import type { Chaser } from './chaser.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import {
   bakeFrames,
-  type BeastFrame,
+  BEAST,
   beastFrame,
   devicePxPerSpritePx,
   LeanTracker,
@@ -51,7 +51,7 @@ const GAUGE_COLORS = {
   fastFill: '#ff922b',
   ink: '#22303f',
   chaser: '#ff3b3b',
-  beast: '#1e1428',
+  beast: '#ffffff',
 };
 /** Gauge fraction from which the warning glow shows once the chaser passes full lean. */
 const OVER_MAX_GLOW_FROM = 0.8;
@@ -92,19 +92,15 @@ export class Renderer {
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
   private readonly playerFrames = bakeFrames(PLAYER);
-  private readonly beastFrames: Record<BeastFrame, HTMLCanvasElement>;
+  private readonly beastFrames = bakeFrames(BEAST);
   private readonly lean = new LeanTracker();
   /** What the sprite draws need beyond their position, captured at the top of render(). */
   private frame = { time: 0, caught: false, rider: { x: 0, y: 0 } };
 
-  constructor(
-    private readonly canvas: HTMLCanvasElement,
-    private readonly beast: SpriteSheet<BeastFrame>,
-  ) {
+  constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D not supported');
     this.ctx = ctx;
-    this.beastFrames = bakeFrames(beast);
     this.insetProbe = document.createElement('div');
     this.insetProbe.style.cssText =
       'position:fixed;visibility:hidden;pointer-events:none;' +
@@ -351,7 +347,7 @@ export class Renderer {
   private drawChaser(x: number, y: number): void {
     const { time, caught, rider } = this.frame;
     const frame = beastFrame(time, Math.hypot(rider.x - x, rider.y - y), caught);
-    this.drawSprite(this.beast, this.beastFrames, frame, x, y);
+    this.drawSprite(BEAST, this.beastFrames, frame, x, y);
   }
 
   /**
@@ -545,7 +541,7 @@ export class Renderer {
     ctx.fill();
   }
 
-  /** A tiny shadow beast head so the chaser line reads as "the beast", not another limit. */
+  /** A tiny golem face so the chaser line reads as "the beast", not another limit. */
   private drawBeastMarker(x: number, y: number): void {
     const { ctx } = this;
     ctx.beginPath();
@@ -560,6 +556,8 @@ export class Renderer {
     ctx.arc(x + 4, y - 2, 2.2, 0, Math.PI * 2);
     ctx.fillStyle = GAUGE_COLORS.chaser;
     ctx.fill();
+    ctx.fillStyle = GAUGE_COLORS.ink;
+    ctx.fillRect(x - 4, y + 3, 8, 2.5);
   }
 
   private drawGaugeLabel(text: string, x: number, y: number, align: CanvasTextAlign, color: string): void {

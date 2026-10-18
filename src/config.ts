@@ -43,7 +43,7 @@ export const CONFIG = {
   gatePopupDuration: 0.9, // seconds the "+N" / miss mark stays visible
   gatePopupRise: 40, // px the "+N" popup floats up while fading
 
-  /** Chaser ("shadow beast") — the run timer */
+  /** Chaser ("avalanche golem") — the run timer */
   chaserTriggerDistance: 4500, // px travelled before the chaser appears (~17s in)
   chaserSpawnBehind: 850, // px behind the player at spawn
   chaserSpeed: 295, // px/s — about halfway from flat to full lean, so a level board gets caught

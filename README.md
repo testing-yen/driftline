@@ -6,8 +6,8 @@ board plus the phone in your pocket becomes a full-body game controller.
 
 You are a rider carving down an endless slope. Tilt the board left and right to
 steer, lean forward for speed, level out to slow down. Thread slalom gates
-for points, dodge pines and rocks — and keep an eye uphill: after a while, a
-shadow beast picks up your scent, and it *will* catch you. A run lasts about
+for points, dodge pines and rocks — and keep an eye uphill: after a while, an
+avalanche golem picks up your scent, and it *will* catch you. A run lasts about
 60–120 seconds, which is exactly one good plank.
 
 ## Vision
@@ -146,7 +146,7 @@ src/
   main.ts            # boot, menu UI, wake lock, PWA registration
   config.ts          # ALL tuning constants
   pwa.ts             # service worker registration
-  dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites (?beast=… picks the chaser)
+  dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites
   input/
     TiltInput.ts           # the interface the game sees
     tiltMath.ts            # dead zone, low-pass, calibration (tested)
@@ -157,7 +157,7 @@ src/
   game/
     game.ts          # fixed-timestep loop, physics, scoring orchestration
     world.ts         # procedural course generation (seeded RNG)
-    chaser.ts        # the shadow beast (run timer)
+    chaser.ts        # the avalanche golem (run timer)
     collisions.ts    # pure collision helpers (tested)
     scoring.ts       # pure scoring helpers (tested)
     renderer.ts      # Canvas 2D, original art only
@@ -177,11 +177,10 @@ scratch for this project:
   original author.)
 - All art is drawn in code: geometric pines, rocks and gates, plus our own
   pixel-art rider and chaser written as character maps in `sprites.ts`. The
-  chaser is an original "shadow beast", not the SkiFree yeti. Dev builds can
-  swap in three candidate chasers with `?beast=wraith|golem|wolf`: a hooded
-  wraith, a snow-and-ice golem and a wolf. They are original creatures in a
-  plain early-90s palette of white, grey, black and red. Only the colours are
-  period style, and none of them is a yeti or any other white ape.
+  chaser is an original "avalanche golem" (a squat heap of packed snow and
+  ice shards), not the SkiFree yeti. It uses a plain early-90s palette of
+  white, grey, black and red. Only the colours are period style; the creature
+  is not a yeti or any other white ape.
 - The name "SkiFree" (and the yeti character) are not used anywhere.
 - Game *mechanics* (steer downhill, dodge obstacles, timed gates) are not
   copyrightable; only creative expression is — and ours is original.

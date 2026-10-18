@@ -50,6 +50,12 @@ export interface Jump {
   spin: { dir: SpinDir; startedAt: number } | null;
   /** The board's edge hit the floor at some point in the air, which voids the trick. */
   touchedFloor: boolean;
+  /**
+   * A spin may start: the lateral lean has been below the trick threshold since
+   * takeoff or at some point in the air. A lean held while steering onto the
+   * ramp must be released first, so only a deliberate lean in the air spins.
+   */
+  spinArmed: boolean;
 }
 
 /** A jump moment the renderer calls out next to the rider; `at` is game time in seconds. */

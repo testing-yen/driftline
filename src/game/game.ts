@@ -173,7 +173,7 @@ export class Game {
     this.world.prune(this.player.y - 400);
 
     if (!this.player.jump && this.world.ramps.some((r) => rampHit(prevY, this.player.y, this.player.x, r))) {
-      this.player.jump = takeoff(this.player.speed, this.time);
+      this.player.jump = takeoff(this.player.speed, this.time, tilt.x);
       this.player.landingCarry = 0;
       this.score += CONFIG.jumpScore;
       this.callout = { kind: 'takeoff', at: this.time };

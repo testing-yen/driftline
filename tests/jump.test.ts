@@ -10,7 +10,7 @@ const SOFT = CONFIG.trickLeanFraction - 0.05;
 
 /** Runs a jump from takeoff at t=0 to touchdown with a lean and grounded state per frame, then lands. */
 function fly(leanAt: (t: number) => number, groundedAt: (t: number) => boolean = () => false, speed = TYPICAL) {
-  let jump = takeoff(speed, 0);
+  let jump = takeoff(speed, 0, 0);
   let t = 0;
   while (!hasLanded(jump, t)) {
     t += DT;
@@ -39,12 +39,12 @@ describe('airTime', () => {
 
 describe('takeoff', () => {
   it('locks air speed at takeoff speed times the boost', () => {
-    expect(takeoff(400, 3).speed).toBeCloseTo(400 * CONFIG.airSpeedBoost);
-    expect(takeoff(400, 3).startedAt).toBe(3);
+    expect(takeoff(400, 3, 0).speed).toBeCloseTo(400 * CONFIG.airSpeedBoost);
+    expect(takeoff(400, 3, 0).startedAt).toBe(3);
   });
 
   it('does not compound momentum carried into the takeoff past full-lean speed', () => {
-    expect(takeoff(CONFIG.fullLeanSpeed * 1.3, 0).speed).toBeCloseTo(CONFIG.fullLeanSpeed * CONFIG.airSpeedBoost);
+    expect(takeoff(CONFIG.fullLeanSpeed * 1.3, 0, 0).speed).toBeCloseTo(CONFIG.fullLeanSpeed * CONFIG.airSpeedBoost);
   });
 
   it('ignores lean in the air: forward or lateral, the speed stays locked', () => {
@@ -54,7 +54,7 @@ describe('takeoff', () => {
 });
 
 describe('updateAir', () => {
-  const base = (): Jump => takeoff(TYPICAL, 0);
+  const base = (): Jump => takeoff(TYPICAL, 0, 0);
 
   it('starts no spin below trickLeanFraction', () => {
     expect(updateAir(base(), SOFT, false, 0.1).spin).toBeNull();
@@ -70,6 +70,20 @@ describe('updateAir', () => {
     const first = updateAir(base(), HARD, false, 0.1);
     const again = updateAir(updateAir(first, 0, false, 0.2), -HARD, false, 0.7);
     expect(again.spin).toEqual({ dir: 'right', startedAt: 0.1 });
+  });
+
+  it('does not spin from a lean already held at takeoff (steering onto the ramp)', () => {
+    let jump = takeoff(TYPICAL, 0, HARD);
+    for (let t = 0.05; t < 0.5; t += 0.05) jump = updateAir(jump, HARD, false, t);
+    expect(jump.spin).toBeNull();
+  });
+
+  it('spins once a lean held at takeoff is released and leaned again', () => {
+    let jump = takeoff(TYPICAL, 0, -HARD);
+    jump = updateAir(jump, -HARD, false, 0.05);
+    jump = updateAir(jump, 0, false, 0.1);
+    jump = updateAir(jump, -HARD, false, 0.15);
+    expect(jump.spin).toEqual({ dir: 'left', startedAt: 0.15 });
   });
 
   it('starts no spin while the board is grounded', () => {
@@ -101,7 +115,7 @@ describe('landing', () => {
   });
 
   it('crashes on a hard lateral lean at touchdown, either way, even after a finished spin', () => {
-    const noSpin = takeoff(TYPICAL, 0);
+    const noSpin = takeoff(TYPICAL, 0, 0);
     const t = noSpin.duration;
     expect(landing(noSpin, CONFIG.landingCrashLean, t)).toBe('crash');
     expect(landing(noSpin, -CONFIG.landingCrashLean, t)).toBe('crash');

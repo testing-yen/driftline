@@ -47,7 +47,7 @@ function ride(seed: number, takeRamps: boolean): Run {
     world.ensure(y - 400, y + 1600);
     world.prune(y - 400);
     if (takeRamps && !jump && world.ramps.some((r) => gateCrossed(prevY, y, r.y))) {
-      jump = takeoff(speed, time);
+      jump = takeoff(speed, time, 0);
       landingCarry = 0;
       jumps += 1;
     }

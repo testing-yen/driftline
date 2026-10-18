@@ -15,7 +15,8 @@ export function airTime(speed: number): number {
   return Math.max(CONFIG.minAirTimeS, Math.min(CONFIG.maxAirTimeS, t));
 }
 
-export function takeoff(speed: number, time: number): Jump {
+/** `lean` is the lateral lean in [-1, 1] at the moment of takeoff. */
+export function takeoff(speed: number, time: number, lean: number): Jump {
   // Capped at full-lean speed so momentum carried off one landing cannot compound
   // jump after jump; rider speed stays bounded and the accelerating golem still wins.
   const base = Math.min(speed, CONFIG.fullLeanSpeed);
@@ -25,20 +26,22 @@ export function takeoff(speed: number, time: number): Jump {
     speed: base * CONFIG.airSpeedBoost,
     spin: null,
     touchedFloor: false,
+    spinArmed: Math.abs(lean) < CONFIG.trickLeanFraction,
   };
 }
 
 /**
- * One frame in the air. `lean` is lateral lean in [-1, 1]. A hard lean starts
- * the jump's one spin unless the board's edge is on the floor; the edge on the
- * floor at any point voids the trick.
+ * One frame in the air. `lean` is lateral lean in [-1, 1]. Once armed (see
+ * Jump.spinArmed), a hard lean starts the jump's one spin unless the board's
+ * edge is on the floor; the edge on the floor at any point voids the trick.
  */
 export function updateAir(jump: Jump, lean: number, grounded: boolean, time: number): Jump {
-  const touchedFloor = jump.touchedFloor || grounded;
-  const startsSpin = jump.spin === null && !grounded && Math.abs(lean) >= CONFIG.trickLeanFraction;
+  const hard = Math.abs(lean) >= CONFIG.trickLeanFraction;
+  const startsSpin = jump.spin === null && jump.spinArmed && !grounded && hard;
   return {
     ...jump,
-    touchedFloor,
+    touchedFloor: jump.touchedFloor || grounded,
+    spinArmed: jump.spinArmed || !hard,
     spin: startsSpin ? { dir: lean < 0 ? 'left' : 'right', startedAt: time } : jump.spin,
   };
 }

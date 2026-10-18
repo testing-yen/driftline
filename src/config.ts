@@ -6,6 +6,8 @@
  * feel without reading game logic.
  */
 
+import { parseSpeedx } from './dev/speedx.js';
+
 /** Production downhill scale; see makeConfig. */
 export const DEFAULT_DOWNHILL_SCALE = 1;
 
@@ -112,4 +114,16 @@ export function makeConfig(downhillScale: number) {
 
 export type Config = ReturnType<typeof makeConfig>;
 
-export const CONFIG: Config = makeConfig(DEFAULT_DOWNHILL_SCALE);
+/**
+ * Read once, as the first module to load, so every module sees one K. Dev
+ * builds take `?speedx=` from the URL for A/B feel tests; production builds
+ * compile this down to the default.
+ */
+function bootDownhillScale(): number {
+  if (import.meta.env.DEV && typeof location !== 'undefined') {
+    return parseSpeedx(location.search) ?? DEFAULT_DOWNHILL_SCALE;
+  }
+  return DEFAULT_DOWNHILL_SCALE;
+}
+
+export const CONFIG: Config = makeConfig(bootDownhillScale());

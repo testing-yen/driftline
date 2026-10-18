@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
+import { spinProgress } from './jump.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import {
   bakeFrames,
@@ -8,9 +9,11 @@ import {
   devicePxPerSpritePx,
   LeanTracker,
   PLAYER,
+  RAMP,
+  spinFrame,
   type SpriteSheet,
 } from './sprites.js';
-import type { GamePhase, Gate, PlayerState } from './types.js';
+import type { GamePhase, Gate, Jump, JumpCallout, PlayerState } from './types.js';
 import type { World } from './world.js';
 
 /**
@@ -69,6 +72,26 @@ const GROUNDED_WARNING = {
   gap: 12,
 };
 
+/** Peak height of a jump, world px per second of air time, so longer jumps fly higher. */
+const AIR_PEAK_PX_PER_S = 120;
+/** How much bigger the rider draws at the top of a jump, as closer to the camera. */
+const AIR_GROW = 0.25;
+
+const CALLOUTS: Record<JumpCallout['kind'], { text: string; color: string }> = {
+  takeoff: { text: `JUMP +${CONFIG.jumpScore}`, color: '#4da0ff' },
+  trick: { text: `SPIN +${CONFIG.trickScore}`, color: '#ff922b' },
+  crash: { text: 'CRASH!', color: '#ff3b3b' },
+};
+const CALLOUT_FONT = '900 30px system-ui, sans-serif';
+/** Gap between the bottom of the rider's skis and the top of the callout, screen px. */
+const CALLOUT_GAP = 14;
+
+/** 0 on the snow, rising to 1 at the top of the jump and back to 0 at touchdown. */
+function airArc(jump: Jump, time: number): number {
+  const p = Math.max(0, Math.min(1, (time - jump.startedAt) / jump.duration));
+  return 4 * p * (1 - p);
+}
+
 /** Rider centre in HUD screen px. */
 interface ScreenPoint {
   x: number;
@@ -93,6 +116,7 @@ export class Renderer {
   private readonly insetProbe: HTMLDivElement;
   private readonly playerFrames = bakeFrames(PLAYER);
   private readonly beastFrames = bakeFrames(BEAST);
+  private readonly rampFrames = bakeFrames(RAMP);
   private readonly lean = new LeanTracker();
   /** What the sprite draws need beyond their position, captured at the top of render(). */
   private frame = { time: 0, caught: false, rider: { x: 0, y: 0 } };
@@ -151,6 +175,7 @@ export class Renderer {
     newBestAt: number | null,
     gauge: GaugeModel,
     contact: EdgeContact,
+    callout: JumpCallout | null,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
@@ -175,6 +200,11 @@ export class Renderer {
     this.drawSnow(player);
     this.drawSpeedStreaks();
 
+    for (const ramp of world.ramps) {
+      const ry = ramp.y - camY;
+      if (ry < -80 || ry > h + 80) continue;
+      this.drawSprite(RAMP, this.rampFrames, 'kicker', w / 2 + ramp.x, ry);
+    }
     for (const gate of world.gates) {
       const gy = gate.y - camY;
       if (gy < -80 || gy > h + 80) continue;
@@ -204,6 +234,7 @@ export class Renderer {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
       if (t >= 0 && t < 1) this.drawNewBestBanner(t);
     }
+    if (phase === 'playing' && callout !== null) this.drawCallout(callout, rider, time);
     if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
   }
 
@@ -341,7 +372,27 @@ export class Renderer {
     const lean = this.lean.update(player.x, this.frame.time);
     // Blink while invulnerable after a crash.
     if (player.invulnTimer > 0 && Math.floor(player.invulnTimer * 10) % 2 === 0) return;
-    this.drawSprite(PLAYER, this.playerFrames, player.stumbleTimer > 0 ? 'crashed' : lean, x, y);
+    const { jump } = player;
+    if (jump === null) {
+      this.drawSprite(PLAYER, this.playerFrames, player.stumbleTimer > 0 ? 'crashed' : lean, x, y);
+      return;
+    }
+    const arc = airArc(jump, this.frame.time);
+    this.drawAirShadow(x, y, arc);
+    const spin = spinProgress(jump, this.frame.time);
+    const frame = jump.spin === null || spin === null ? 'straight' : spinFrame(jump.spin.dir, spin);
+    this.drawSprite(PLAYER, this.playerFrames, frame, x, y - AIR_PEAK_PX_PER_S * jump.duration * arc, 1 + AIR_GROW * arc);
+  }
+
+  /** The rider's shadow stays on the snow, shrinking and fading as they rise. */
+  private drawAirShadow(x: number, y: number, arc: number): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.fillStyle = `rgba(60,85,130,${0.55 - 0.15 * arc})`;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 6, 30 * (1 - 0.25 * arc), 11 * (1 - 0.25 * arc), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   private drawChaser(x: number, y: number): void {
@@ -353,7 +404,8 @@ export class Renderer {
   /**
    * Draws a baked frame with its anchor on world point (x, y). Each sprite px
    * covers a whole number of device px, snapped to the device grid, so the
-   * pixels stay crisp at any zoom.
+   * pixels stay crisp at any zoom. A `grow` above 1 enlarges it with
+   * nearest-neighbour scaling: still sharp, some pixels one device px wider.
    */
   private drawSprite<F extends string>(
     sheet: SpriteSheet<F>,
@@ -361,10 +413,11 @@ export class Renderer {
     frame: F,
     x: number,
     y: number,
+    grow = 1,
   ): void {
     const { ctx } = this;
     const m = ctx.getTransform();
-    const n = devicePxPerSpritePx(m.a);
+    const n = devicePxPerSpritePx(m.a) * grow;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
@@ -372,8 +425,8 @@ export class Renderer {
       baked[frame],
       Math.round(m.e + m.a * x - sheet.anchor.x * n),
       Math.round(m.f + m.d * y - sheet.anchor.y * n),
-      sheet.width * n,
-      sheet.height * n,
+      Math.round(sheet.width * n),
+      Math.round(sheet.height * n),
     );
     ctx.restore();
   }
@@ -623,6 +676,37 @@ export class Renderer {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, x, y + 1);
+    ctx.restore();
+  }
+
+  /**
+   * "JUMP +50", "SPIN +100" or "CRASH!" just below the rider's skis, where no
+   * other HUD element goes: the gauge, the grounded warning and the NEW BEST!
+   * banner all sit above the rider. Pops in, holds, fades like the banner.
+   */
+  private drawCallout(callout: JumpCallout, rider: ScreenPoint, time: number): void {
+    const t = (time - callout.at) / CONFIG.gatePopupDuration;
+    if (t < 0 || t >= 1) return;
+    const { ctx } = this;
+    const { text, color } = CALLOUTS[callout.kind];
+    const skis = ((PLAYER.height - PLAYER.anchor.y) * devicePxPerSpritePx(this.dpr * this.scale)) / this.dpr;
+    ctx.save();
+    ctx.font = CALLOUT_FONT;
+    const half = ctx.measureText(text).width / 2 + 4;
+    const x = Math.max(this.insetLeft + half, Math.min(this.screenW - this.insetRight - half, rider.x));
+    const y = rider.y + skis + CALLOUT_GAP + 15;
+    const scale = 1 + 0.3 * Math.max(0, 1 - t / 0.12);
+    ctx.globalAlpha = t > 0.6 ? (1 - t) / 0.4 : 1;
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    ctx.strokeText(text, 0, 0);
+    ctx.fillStyle = color;
+    ctx.fillText(text, 0, 0);
     ctx.restore();
   }
 

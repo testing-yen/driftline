@@ -1,12 +1,13 @@
 import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
-import { circlesCollide, gateCrossed, gatePassed } from './collisions.js';
+import { circlesCollide, gateCrossed, gatePassed, rampHit } from './collisions.js';
+import { easeSpeed, hasLanded, landing, takeoff, updateAir } from './jump.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
 import { edgeContact, gaugeModel, leanTargetSpeed, type EdgeContact } from './speedGauge.js';
-import type { GamePhase, PlayerState } from './types.js';
+import type { GamePhase, Jump, JumpCallout, PlayerState } from './types.js';
 import { World } from './world.js';
 
 const STEP = 1 / 60;
@@ -28,6 +29,8 @@ export class Game {
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
+  /** Latest jump moment for the renderer to call out; null until the first jump. */
+  private callout: JumpCallout | null = null;
   /** Game time when the score first passed the session best; null until then. */
   private newBestAt: number | null = null;
   private time = 0;
@@ -106,7 +109,7 @@ export class Game {
       target: this.targetSpeed,
       chaserSpeed: this.chaser.active ? this.chaser.speed : null,
     });
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact);
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout);
   }
 
   private reset(): void {
@@ -120,6 +123,7 @@ export class Game {
     this.streak = 0;
     this.gatesCleared = 0;
     this.newBestAt = null;
+    this.callout = null;
     this.time = 0;
     this.acc = 0;
     this.renderer.reset();
@@ -132,18 +136,30 @@ export class Game {
     this.input.update(dt);
     const tilt = this.input.sample();
 
-    const stumbling = this.player.stumbleTimer > 0;
     this.groundedFor = tilt.grounded ? this.groundedFor + dt : 0;
     this.contact = edgeContact(tilt.grounded, this.groundedFor);
-    this.targetSpeed = leanTargetSpeed(tilt.y, this.contact, stumbling);
-    if (stumbling) this.player.stumbleTimer -= dt;
-    this.player.speed += (this.targetSpeed - this.player.speed) * Math.min(1, dt * 6);
 
-    // Lateral steering with soft walls.
-    this.player.x += tilt.x * CONFIG.steerSpeed * dt;
-    const half = CONFIG.worldHalfWidth;
-    if (this.player.x < -half) this.player.x = -half;
-    if (this.player.x > half) this.player.x = half;
+    const flying = this.player.jump && updateAir(this.player.jump, tilt.x, tilt.grounded, this.time);
+    if (flying && hasLanded(flying, this.time)) this.land(flying, tilt.x);
+    else this.player.jump = flying;
+
+    const stumbling = this.player.stumbleTimer > 0;
+    if (stumbling) this.player.stumbleTimer -= dt;
+    if (this.player.jump) {
+      // Locked speed and no steering in the air: lateral lean is for tricks.
+      this.targetSpeed = this.player.jump.speed;
+      this.player.speed = this.player.jump.speed;
+    } else {
+      this.targetSpeed = leanTargetSpeed(tilt.y, this.contact, stumbling);
+      this.player.speed = easeSpeed(this.player.speed, this.targetSpeed, this.player.landingCarry, dt);
+      this.player.landingCarry = Math.max(0, this.player.landingCarry - dt);
+
+      // Lateral steering with soft walls.
+      this.player.x += tilt.x * CONFIG.steerSpeed * dt;
+      const half = CONFIG.worldHalfWidth;
+      if (this.player.x < -half) this.player.x = -half;
+      if (this.player.x > half) this.player.x = half;
+    }
 
     const prevY = this.player.y;
     const dy = this.player.speed * dt;
@@ -155,6 +171,13 @@ export class Game {
     // Keep course generated ahead; prune behind.
     this.world.ensure(this.player.y - 400, this.player.y + 1600);
     this.world.prune(this.player.y - 400);
+
+    if (!this.player.jump && this.world.ramps.some((r) => rampHit(prevY, this.player.y, this.player.x, r))) {
+      this.player.jump = takeoff(this.player.speed, this.time);
+      this.player.landingCarry = 0;
+      this.score += CONFIG.jumpScore;
+      this.callout = { kind: 'takeoff', at: this.time };
+    }
 
     // Gates.
     const gates = this.world.gates;
@@ -173,8 +196,8 @@ export class Game {
       }
     }
 
-    // Obstacle collisions → stumble (never instant death).
-    if (this.player.invulnTimer <= 0) {
+    // Obstacle collisions → stumble (never instant death). Airborne riders fly over them.
+    if (this.player.invulnTimer <= 0 && !this.player.jump) {
       for (const ob of this.world.obstacles) {
         if (Math.abs(ob.y - this.player.y) > 60) continue;
         if (
@@ -183,11 +206,7 @@ export class Game {
             ob.x, ob.y, ob.r,
           )
         ) {
-          this.player.stumbleTimer = CONFIG.stumbleDuration;
-          this.player.invulnTimer = CONFIG.invulnDuration;
-          this.score = applyStumblePenalty(this.score);
-          this.streak = 0;
-          this.renderer.addShake(8);
+          this.crash();
           break;
         }
       }
@@ -210,5 +229,29 @@ export class Game {
         durationS: this.time,
       });
     }
+  }
+
+  private land(jump: Jump, lean: number): void {
+    this.player.jump = null;
+    const outcome = landing(jump, lean, this.time);
+    if (outcome === 'crash') {
+      this.crash();
+      this.callout = { kind: 'crash', at: this.time };
+      return;
+    }
+    this.player.landingCarry = CONFIG.landingCarryS;
+    if (outcome === 'trick') {
+      this.score += CONFIG.trickScore;
+      this.callout = { kind: 'trick', at: this.time };
+    }
+  }
+
+  private crash(): void {
+    this.player.stumbleTimer = CONFIG.stumbleDuration;
+    this.player.invulnTimer = CONFIG.invulnDuration;
+    this.player.landingCarry = 0;
+    this.score = applyStumblePenalty(this.score);
+    this.streak = 0;
+    this.renderer.addShake(8);
   }
 }

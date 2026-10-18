@@ -52,6 +52,12 @@ export interface Jump {
   touchedFloor: boolean;
 }
 
+/** A jump moment the renderer calls out next to the rider; `at` is game time in seconds. */
+export interface JumpCallout {
+  kind: 'takeoff' | 'trick' | 'crash';
+  at: number;
+}
+
 export interface PlayerState {
   x: number;
   y: number;

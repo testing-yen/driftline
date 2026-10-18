@@ -1,13 +1,15 @@
 /**
- * Pixel-art sprites for the rider and the beast, plus the rules that pick a
- * frame. ORIGINAL ART drawn for Driftline: nothing here derives from SkiFree,
- * and the beast is not a yeti.
+ * Pixel-art sprites for the rider, the beast and the jump ramp, plus the
+ * rules that pick a frame. ORIGINAL ART drawn for Driftline: nothing here
+ * derives from SkiFree, the beast is not a yeti, and the ramp is our own kicker.
  *
  * A frame is a list of rows with one character per pixel, looked up in the
  * sheet's palette; '.' is transparent. Downhill is down the screen, so the
  * rider shows their back with ski tips pointing down. The beast chases from
  * uphill, facing the rider.
  */
+
+import type { SpinDir } from './types.js';
 
 export const TRANSPARENT = '.';
 
@@ -20,8 +22,10 @@ export interface SpriteSheet<F extends string> {
   readonly frames: Readonly<Record<F, readonly string[]>>;
 }
 
-export type PlayerFrame = 'straight' | 'left' | 'right' | 'crashed';
+/** 'front' only shows halfway through a spin, facing back uphill. */
+export type PlayerFrame = 'straight' | 'left' | 'right' | 'front' | 'crashed';
 export type BeastFrame = 'glideA' | 'glideB' | 'lunge';
+export type RampFrame = 'kicker';
 export type Lean = Extract<PlayerFrame, 'straight' | 'left' | 'right'>;
 
 export const PLAYER: SpriteSheet<PlayerFrame> = {
@@ -138,6 +142,40 @@ export const PLAYER: SpriteSheet<PlayerFrame> = {
       '.........owo......owo...',
       '..........oo.......oo...',
       '........................',
+    ],
+    front: [
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '.......oowwwwwwoo.......',
+      '.......oBwwwwwwBo.......',
+      '.....oooBBBBBBBBooo.....',
+      '....oOOOoBBBBBBoOOdo....',
+      '...oOOOOOOooooOOOOOdo...',
+      '...oOOOOOOOddOOOOOOdo...',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..ooooOOOOOddOOOOdoooo..',
+      '......oddOOOOOOddo......',
+      '......ooBBBBBBBBoo......',
+      '......ooBBBooBBBoo......',
+      '......oBBBo..oBBBo......',
+      '.....oBBBo....oBBBo.....',
+      '....oBBBBBo..oBBBBBo....',
+      '....ooooooo..ooooooo....',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '.......o........o.......',
     ],
     crashed: [
       '........................',
@@ -301,6 +339,62 @@ export const BEAST: SpriteSheet<BeastFrame> = {
     ],
   },
 };
+
+/**
+ * Snow kicker seen from uphill: a packed-snow run-in, widening toward the
+ * lip, with orange chevrons pointing the way off it; then the bright lip,
+ * the dark take-off edge and the shaded face that drops to the snow.
+ * Anchored on the take-off edge, which is the ramp's y.
+ */
+export const RAMP: SpriteSheet<RampFrame> = {
+  width: 32,
+  height: 19,
+  anchor: { x: 16, y: 15 },
+  palette: {
+    o: '#1d2b44', // outline and take-off edge
+    w: '#ffffff', // packed-snow lip
+    l: '#cfdcf0', // run-in surface
+    s: '#93a9cb', // run-in edges, shadow on the snow
+    d: '#46689e', // side walls, taller toward the lip, and the face under it
+    a: '#ff922b', // chevrons, the gauge's "fast" orange
+  },
+  frames: {
+    kicker: [
+      '........ssssssssssssssss........',
+      '........ssssssssssssssss........',
+      '.....oddsllllllllllllllsddo.....',
+      '.....oddsllaaallllaaallsddo.....',
+      '.....oddslllaaallaaalllsddo.....',
+      '....oddslllllaallaalllllsddo....',
+      '...odddsllllllaaaallllllsdddo...',
+      '...odddsllllllllllllllllsdddo...',
+      '..odddsllllaaallllaaallllsdddo..',
+      '..odddslllllaaallaaalllllsdddo..',
+      '.oddddsllllllaallaallllllsddddo.',
+      'oddddsllllllllaaaallllllllsddddo',
+      'oddddsllllllllllllllllllllsddddo',
+      'owwwwwwwwwwwwwwwwwwwwwwwwwwwwwwo',
+      'owwwwwwwwwwwwwwwwwwwwwwwwwwwwwwo',
+      'oooooooooooooooooooooooooooooooo',
+      '.dddddddddddddddddddddddddddddd.',
+      '..ssssssssssssssssssssssssssss..',
+      '.....ssssssssssssssssssssss.....',
+    ],
+  },
+};
+
+/** A spin seen from behind: side-on one way, facing uphill, side-on the other way, back again. */
+const SPIN_FRAMES: Readonly<Record<SpinDir, readonly PlayerFrame[]>> = {
+  right: ['straight', 'right', 'front', 'left'],
+  left: ['straight', 'left', 'front', 'right'],
+};
+
+/** Rider frame `progress` (0..1) of the way through a spin; a finished spin rides straight. */
+export function spinFrame(dir: SpinDir, progress: number): PlayerFrame {
+  const frames = SPIN_FRAMES[dir];
+  if (progress >= 1) return 'straight';
+  return frames[Math.floor(Math.max(0, progress) * frames.length)];
+}
 
 /** World px per sprite px the renderer aims for; it rounds so each sprite px is whole device px. */
 const SPRITE_WORLD_PX = 2.6;

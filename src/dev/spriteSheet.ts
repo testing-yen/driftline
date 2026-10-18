@@ -1,5 +1,5 @@
 import { viewScale } from '../game/renderer.js';
-import { BEAST, bakeFrames, devicePxPerSpritePx, PLAYER, type SpriteSheet } from '../game/sprites.js';
+import { BEAST, bakeFrames, devicePxPerSpritePx, PLAYER, RAMP, type SpriteSheet } from '../game/sprites.js';
 
 const GAP = 10;
 const LABEL_H = 16;
@@ -11,7 +11,7 @@ interface Row {
 }
 
 /**
- * Dev-only sprite sheet, opened with `?sprites`: the rider and the beast,
+ * Dev-only sprite sheet, opened with `?sprites`: the rider, the beast and the ramp,
  * each row showing all frames enlarged and then again at the size the
  * game draws them on this screen, on plain snow.
  */
@@ -19,6 +19,7 @@ export function showSpriteSheet(canvas: HTMLCanvasElement): void {
   const rows: Row[] = [
     { name: 'rider', sheet: PLAYER, baked: bakeFrames(PLAYER) },
     { name: 'beast', sheet: BEAST, baked: bakeFrames(BEAST) },
+    { name: 'ramp', sheet: RAMP, baked: bakeFrames(RAMP) },
   ];
   const draw = () => {
     const dpr = Math.min(2, window.devicePixelRatio || 1);

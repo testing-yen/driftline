@@ -8,6 +8,8 @@ import {
   devicePxPerSpritePx,
   LeanTracker,
   PLAYER,
+  RAMP,
+  spinFrame,
   TRANSPARENT,
   type SpriteSheet,
 } from '../src/game/sprites.js';
@@ -15,6 +17,7 @@ import {
 const SHEETS: [string, SpriteSheet<string>, number, number][] = [
   ['player', PLAYER, 24, 32],
   ['beast', BEAST, 32, 32],
+  ['ramp', RAMP, 32, 19],
 ];
 
 describe.each(SHEETS)('%s sprite sheet', (_, sheet, width, height) => {
@@ -75,6 +78,25 @@ describe('player frames', () => {
     };
     expect(leftHeavy(PLAYER.frames.left)).toBeGreaterThan(leftHeavy(PLAYER.frames.straight));
     expect(leftHeavy(PLAYER.frames.right)).toBeLessThan(leftHeavy(PLAYER.frames.straight));
+  });
+
+  it('has a front frame unlike every other frame, for mid-spin', () => {
+    const others = (['straight', 'left', 'right', 'crashed'] as const).map((f) => key(PLAYER.frames[f]));
+    expect(others).not.toContain(key(PLAYER.frames.front));
+  });
+});
+
+describe('spinFrame', () => {
+  const sequence = (dir: 'left' | 'right') => [0, 0.25, 0.5, 0.75].map((p) => spinFrame(dir, p));
+
+  it('turns through side, front and other side, in the spin direction', () => {
+    expect(sequence('right')).toEqual(['straight', 'right', 'front', 'left']);
+    expect(sequence('left')).toEqual(['straight', 'left', 'front', 'right']);
+  });
+
+  it('rides straight once the spin is done', () => {
+    expect(spinFrame('right', 1)).toBe('straight');
+    expect(spinFrame('left', 1.5)).toBe('straight');
   });
 });
 

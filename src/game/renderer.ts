@@ -13,7 +13,7 @@ import {
   spinFrame,
   type SpriteSheet,
 } from './sprites.js';
-import type { GamePhase, Gate, Jump, JumpCallout, PlayerState } from './types.js';
+import type { AirLean, GamePhase, Gate, Jump, JumpCallout, PlayerState } from './types.js';
 import type { World } from './world.js';
 
 /**
@@ -79,6 +79,7 @@ const AIR_GROW = 0.25;
 
 const CALLOUTS: Record<JumpCallout['kind'], { text: string; color: string }> = {
   takeoff: { text: `JUMP +${CONFIG.jumpScore}`, color: '#4da0ff' },
+  spin: { text: 'SPIN!', color: '#ff922b' },
   trick: { text: `SPIN +${CONFIG.trickScore}`, color: '#ff922b' },
   crash: { text: 'CRASH!', color: '#ff3b3b' },
 };
@@ -176,6 +177,7 @@ export class Renderer {
     gauge: GaugeModel,
     contact: EdgeContact,
     callout: JumpCallout | null,
+    airLean: AirLean | null,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = h * 0.62;
@@ -235,6 +237,7 @@ export class Renderer {
       if (t >= 0 && t < 1) this.drawNewBestBanner(t);
     }
     if (phase === 'playing' && callout !== null) this.drawCallout(callout, rider, time);
+    if (phase === 'playing' && airLean !== null) this.drawAirLean(airLean, rider);
     if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
   }
 
@@ -707,6 +710,54 @@ export class Renderer {
     ctx.strokeText(text, 0, 0);
     ctx.fillStyle = color;
     ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+
+  /**
+   * In-air trick meter under the callout: lateral lean as a marker on a short
+   * track, with the two spin thresholds marked. Shows why a spin did or did
+   * not start, which is otherwise invisible in under a second of air.
+   */
+  private drawAirLean(air: AirLean, rider: ScreenPoint): void {
+    const { ctx } = this;
+    const halfW = 80;
+    const barH = 14;
+    const skis = ((PLAYER.height - PLAYER.anchor.y) * devicePxPerSpritePx(this.dpr * this.scale)) / this.dpr;
+    const x = Math.max(this.insetLeft + halfW + 8, Math.min(this.screenW - this.insetRight - halfW - 8, rider.x));
+    const y = rider.y + skis + CALLOUT_GAP + 15 + 34;
+    const at = (lean: number) => x + Math.max(-1, Math.min(1, lean)) * halfW;
+    const past = air.lean >= air.right || air.lean <= air.left;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x - halfW, y - barH / 2, 2 * halfW, barH, barH / 2);
+    ctx.fillStyle = air.sideGrounded ? 'rgba(214,40,40,0.85)' : GAUGE_COLORS.track;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = GAUGE_COLORS.outline;
+    ctx.stroke();
+    ctx.fillStyle = GAUGE_COLORS.outline;
+    ctx.fillRect(x - 1, y - barH / 2 + 3, 2, barH - 6);
+    ctx.fillStyle = GAUGE_COLORS.fastFill;
+    for (const t of [air.left, air.right]) ctx.fillRect(at(t) - 2, y - barH / 2 - 5, 4, barH + 10);
+    ctx.beginPath();
+    ctx.arc(at(air.lean), y, 9, 0, Math.PI * 2);
+    // Orange means a spin is (or would be) on; a grounded side edge blocks it, so stay white.
+    ctx.fillStyle = air.spinning || (past && !air.sideGrounded) ? GAUGE_COLORS.fastFill : GAUGE_COLORS.outline;
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    ctx.stroke();
+    if (air.sideGrounded) {
+      ctx.font = '800 20px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = GAUGE_COLORS.ink;
+      ctx.strokeText('EDGE DOWN', x, y + barH / 2 + 6);
+      ctx.fillStyle = '#ff3b3b';
+      ctx.fillText('EDGE DOWN', x, y + barH / 2 + 6);
+    }
     ctx.restore();
   }
 

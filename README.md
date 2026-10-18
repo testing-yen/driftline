@@ -12,10 +12,13 @@ avalanche golem picks up your scent, and it *will* catch you. A run lasts about
 
 Snow kickers on the slope launch you into the air for about a second. In the
 air you fly over trees and rocks at 1.3× your takeoff speed, which buys
-distance from the golem, and you can't steer. A fresh sideways lean in the
-air (past `trickLeanFraction` of full lean) spins you for a bonus; the spin
-always finishes by touchdown. Land level: leaning hard at touchdown crashes
-you. All jump tuning (`rampEveryGates`, `airSpeedBoost`,
+distance from the golem, and you can't steer. Leaning sideways
+`trickLeanFraction` of full lean further than you were at takeoff spins you
+for a bonus; the spin always finishes by touchdown. A meter under the rider
+shows your lean against both spin thresholds while airborne, "SPIN!" pops
+when one starts, and "EDGE DOWN" shows when a side edge on the floor blocks
+it (only the side edges void a trick). Land level: leaning hard at
+touchdown crashes you. All jump tuning (`rampEveryGates`, `airSpeedBoost`,
 `trickLeanFraction`, `landingCrashLean` and more) is in `src/config.ts`. The
 lean thresholds depend on your board, so re-tune them on the board.
 

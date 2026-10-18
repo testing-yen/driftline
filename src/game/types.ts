@@ -48,19 +48,29 @@ export interface Jump {
   speed: number;
   /** The one spin this jump may have, from when it started. */
   spin: { dir: SpinDir; startedAt: number; endsAt: number } | null;
-  /** The board's edge hit the floor at some point in the air, which voids the trick. */
+  /** A side edge hit the floor at some point in the air, which voids the trick. */
   touchedFloor: boolean;
   /**
-   * A spin may start: the lateral lean has been below the trick threshold since
-   * takeoff or at some point in the air. A lean held while steering onto the
-   * ramp must be released first, so only a deliberate lean in the air spins.
+   * Lateral lean at takeoff. A spin needs a lean past it (see trickThresholds),
+   * so a lean held while steering onto the ramp does not spin by itself and
+   * easing off it never does.
    */
-  spinArmed: boolean;
+  takeoffLean: number;
+}
+
+/** What the in-air trick meter shows: lateral lean against the two spin thresholds, all in [-1, 1]. */
+export interface AirLean {
+  lean: number;
+  left: number;
+  right: number;
+  /** A side edge is on the floor, so no spin can start. */
+  sideGrounded: boolean;
+  spinning: boolean;
 }
 
 /** A jump moment the renderer calls out next to the rider; `at` is game time in seconds. */
 export interface JumpCallout {
-  kind: 'takeoff' | 'trick' | 'crash';
+  kind: 'takeoff' | 'spin' | 'trick' | 'crash';
   at: number;
 }
 

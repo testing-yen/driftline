@@ -66,7 +66,7 @@ export class KeyboardTiltInput implements TiltInput {
   }
 
   sample(): TiltSample {
-    return { x: this.current.x, y: this.current.y, grounded: false };
+    return { x: this.current.x, y: this.current.y, grounded: false, sideGrounded: false };
   }
 
   private updateTargetFromKeys(): void {

@@ -49,13 +49,14 @@ export function leanFromAngles(
   xDeg: number,
   yDeg: number,
   reach: BoardReach,
-): { x: number; y: number; grounded: boolean } {
+): { x: number; y: number; grounded: boolean; sideGrounded: boolean } {
+  const down = (dir: LeanDirection) => leanToward(dir, xDeg, yDeg) >= reach[dir] * CONFIG.groundedFraction;
+  const sideGrounded = down('left') || down('right');
   return {
     x: axisLean(xDeg, xDeg >= 0 ? reach.right : reach.left),
     y: axisLean(yDeg, yDeg >= 0 ? reach.forward : reach.back),
-    grounded: LEAN_DIRECTIONS.some(
-      (dir) => leanToward(dir, xDeg, yDeg) >= reach[dir] * CONFIG.groundedFraction,
-    ),
+    grounded: sideGrounded || down('forward') || down('back'),
+    sideGrounded,
   };
 }
 

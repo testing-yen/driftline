@@ -78,19 +78,31 @@ describe('updateAir', () => {
     expect(jump.spin).toBeNull();
   });
 
-  it('spins once a lean held at takeoff is released and leaned again', () => {
-    let jump = takeoff(TYPICAL, 0, -HARD);
-    jump = updateAir(jump, -HARD, false, 0.05);
-    jump = updateAir(jump, 0, false, 0.1);
-    jump = updateAir(jump, -HARD, false, 0.15);
-    expect(jump.spin).toMatchObject({ dir: 'left', startedAt: 0.15 });
+  it('spins by leaning further than a lean held at takeoff, with no need to level out first', () => {
+    const held = 0.3;
+    let jump = takeoff(TYPICAL, 0, held);
+    jump = updateAir(jump, held + CONFIG.trickLeanFraction - 0.05, false, 0.05);
+    expect(jump.spin).toBeNull();
+    jump = updateAir(jump, held + CONFIG.trickLeanFraction + 0.05, false, 0.1);
+    expect(jump.spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
   });
 
-  it('starts no spin while the board is grounded', () => {
+  it('never spins from easing a held lean back toward level', () => {
+    let jump = takeoff(TYPICAL, 0, 0.6);
+    for (let t = 0.05, lean = 0.6; t < 0.6; t += 0.05, lean -= 0.06) jump = updateAir(jump, Math.max(0, lean), false, t);
+    expect(jump.spin).toBeNull();
+  });
+
+  it('can spin the other way from a lean held at takeoff', () => {
+    const jump = updateAir(takeoff(TYPICAL, 0, 0.5), -HARD, false, 0.1);
+    expect(jump.spin).toMatchObject({ dir: 'left', startedAt: 0.1 });
+  });
+
+  it('starts no spin while a side edge is grounded', () => {
     expect(updateAir(base(), HARD, true, 0.1).spin).toBeNull();
   });
 
-  it('remembers that the board touched the floor', () => {
+  it('remembers that a side edge touched the floor', () => {
     const touched = updateAir(base(), 0, true, 0.1);
     expect(updateAir(touched, 0, false, 0.2).touchedFloor).toBe(true);
     expect(updateAir(base(), 0, false, 0.1).touchedFloor).toBe(false);

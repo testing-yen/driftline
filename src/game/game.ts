@@ -2,12 +2,12 @@ import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
 import { circlesCollide, gateCrossed, gatePassed, rampHit } from './collisions.js';
-import { easeSpeed, hasLanded, landing, takeoff, updateAir } from './jump.js';
+import { easeSpeed, hasLanded, landing, takeoff, trickThresholds, updateAir } from './jump.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
 import type { RunResult } from './session.js';
 import { edgeContact, gaugeModel, leanTargetSpeed, type EdgeContact } from './speedGauge.js';
-import type { GamePhase, Jump, JumpCallout, PlayerState } from './types.js';
+import type { AirLean, GamePhase, Jump, JumpCallout, PlayerState } from './types.js';
 import { World } from './world.js';
 
 const STEP = 1 / 60;
@@ -31,6 +31,8 @@ export class Game {
   private gatesCleared = 0;
   /** Latest jump moment for the renderer to call out; null until the first jump. */
   private callout: JumpCallout | null = null;
+  /** Latest lateral lean and side-edge state, for the in-air trick meter. */
+  private lateral = { lean: 0, sideGrounded: false };
   /** Game time when the score first passed the session best; null until then. */
   private newBestAt: number | null = null;
   private time = 0;
@@ -109,7 +111,9 @@ export class Game {
       target: this.targetSpeed,
       chaserSpeed: this.chaser.active ? this.chaser.speed : null,
     });
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout);
+    const { jump } = this.player;
+    const airLean: AirLean | null = jump && { ...this.lateral, ...trickThresholds(jump), spinning: jump.spin !== null };
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout, airLean);
   }
 
   private reset(): void {
@@ -139,7 +143,9 @@ export class Game {
     this.groundedFor = tilt.grounded ? this.groundedFor + dt : 0;
     this.contact = edgeContact(tilt.grounded, this.groundedFor);
 
-    const flying = this.player.jump && updateAir(this.player.jump, tilt.x, tilt.grounded, this.time);
+    this.lateral = { lean: tilt.x, sideGrounded: tilt.sideGrounded };
+    const flying = this.player.jump && updateAir(this.player.jump, tilt.x, tilt.sideGrounded, this.time);
+    if (flying && flying.spin && !this.player.jump?.spin) this.callout = { kind: 'spin', at: this.time };
     if (flying && hasLanded(flying, this.time)) this.land(flying, tilt.x);
     else this.player.jump = flying;
 

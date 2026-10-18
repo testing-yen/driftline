@@ -58,7 +58,7 @@ export const CONFIG = {
   trickScore: 100, // points for a spin completed before landing
   // Both lean fractions are of full lean (the steering input's ±1) and depend on the hardware:
   // they must stay well inside the grounded threshold, so re-tune them with fullLeanFraction / groundedFraction.
-  trickLeanFraction: 0.35, // lateral lean in the air past this starts a spin that way; 0.6 proved unreachable mid-plank in under a second (depends on the board)
+  trickLeanFraction: 0.35, // lean this much further sideways than at takeoff, in the air, to start a spin (depends on the board)
   landingCrashLean: 0.6, // lateral lean at touchdown at or past this crashes the landing
   spinDurationS: 0.5, // one full spin when there is air time for it; a later spin speeds up to finish by touchdown
   minSpinS: 0.15, // a spin needs at least this much air left to start, so a lean right at touchdown is not a trick

@@ -26,28 +26,41 @@ export function takeoff(speed: number, time: number, lean: number): Jump {
     speed: base * CONFIG.airSpeedBoost,
     spin: null,
     touchedFloor: false,
-    spinArmed: Math.abs(lean) < CONFIG.trickLeanFraction,
+    takeoffLean: lean,
   };
 }
 
 /**
- * One frame in the air. `lean` is lateral lean in [-1, 1]. Once armed (see
- * Jump.spinArmed), a hard lean starts the jump's one spin unless the board's
- * edge is on the floor; the edge on the floor at any point voids the trick.
- * A spin always finishes by touchdown, speeding up when started late, so the
- * only timing rule is that it needs minSpinS of air left to start.
+ * Lateral lean that starts a spin each way: trickLeanFraction further than
+ * the takeoff lean in that direction (or than level, if the rider took off
+ * leaning the other way). Easing back toward level never reaches either.
  */
-export function updateAir(jump: Jump, lean: number, grounded: boolean, time: number): Jump {
-  const hard = Math.abs(lean) >= CONFIG.trickLeanFraction;
+export function trickThresholds(jump: Jump): { left: number; right: number } {
+  return {
+    left: Math.max(-1, Math.min(0, jump.takeoffLean) - CONFIG.trickLeanFraction),
+    right: Math.min(1, Math.max(0, jump.takeoffLean) + CONFIG.trickLeanFraction),
+  };
+}
+
+/**
+ * One frame in the air. `lean` is lateral lean in [-1, 1]. Leaning past a
+ * trick threshold starts the jump's one spin unless a side edge is on the
+ * floor; a side edge on the floor at any point voids the trick. A spin always
+ * finishes by touchdown, speeding up when started late, so the only timing
+ * rule is that it needs minSpinS of air left to start.
+ */
+export function updateAir(jump: Jump, lean: number, sideGrounded: boolean, time: number): Jump {
+  const { left, right } = trickThresholds(jump);
+  const dir = lean >= right ? 'right' : lean <= left ? 'left' : null;
   const airLeft = jump.startedAt + jump.duration - time;
-  const startsSpin = jump.spin === null && jump.spinArmed && !grounded && hard && airLeft >= CONFIG.minSpinS;
+  const startsSpin = jump.spin === null && dir !== null && !sideGrounded && airLeft >= CONFIG.minSpinS;
   return {
     ...jump,
-    touchedFloor: jump.touchedFloor || grounded,
-    spinArmed: jump.spinArmed || !hard,
-    spin: startsSpin
-      ? { dir: lean < 0 ? 'left' : 'right', startedAt: time, endsAt: time + Math.min(CONFIG.spinDurationS, airLeft) }
-      : jump.spin,
+    touchedFloor: jump.touchedFloor || sideGrounded,
+    spin:
+      startsSpin && dir !== null
+        ? { dir, startedAt: time, endsAt: time + Math.min(CONFIG.spinDurationS, airLeft) }
+        : jump.spin,
   };
 }
 

@@ -1,3 +1,5 @@
+import type { PlayMode } from '../input/playMode.js';
+
 /**
  * In-memory scoreboard for one page session. A page refresh clears it on
  * purpose: it measures today's workout, not an all-time record.
@@ -52,6 +54,11 @@ export class SessionBoard {
   get totalDurationS(): number {
     return this.totalS;
   }
+}
+
+/** One scoreboard per play mode: a handheld run never competes with a board run, and vice versa. */
+export function boardsPerMode(): Record<PlayMode, SessionBoard> {
+  return { board: new SessionBoard(), handheld: new SessionBoard() };
 }
 
 /** Format seconds as m:ss, truncating partial seconds. */

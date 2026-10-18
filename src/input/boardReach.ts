@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { applyDeadZone, deadZoneToNormal, degToNormal } from './tiltMath.js';
+import { leanToNormal } from './tiltMath.js';
 
 /** Degrees from neutral at which the board's edge touches the floor, per direction. */
 export interface BoardReach {
@@ -61,8 +61,7 @@ export function leanFromAngles(
 }
 
 function axisLean(deg: number, reachDeg: number): number {
-  const fullDeg = reachDeg * CONFIG.fullLeanFraction;
-  return applyDeadZone(degToNormal(deg, fullDeg), deadZoneToNormal(CONFIG.deadZoneDeg, fullDeg));
+  return leanToNormal(deg, reachDeg * CONFIG.fullLeanFraction, CONFIG.deadZoneDeg);
 }
 
 /** Parses the stored reach; anything missing, malformed, or out of range falls back to DEFAULT_REACH. */

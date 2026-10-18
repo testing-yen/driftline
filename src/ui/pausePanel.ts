@@ -54,7 +54,7 @@ export function showPaused(options: PausedOptions): void {
     actions.append(recenterButton(input, resume));
   }
   const angles = input.angles;
-  if (angles) {
+  if (angles?.profile.calibratesReach) {
     actions.append(
       calibrateBoardButton(() => showCalibration({ ui, input, angles, onClose: () => showPaused(options) })),
     );

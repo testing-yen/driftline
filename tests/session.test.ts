@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SessionBoard, formatDuration, type RunResult } from '../src/game/session.js';
+import { SessionBoard, boardsPerMode, formatDuration, type RunResult } from '../src/game/session.js';
 
 function run(score: number, durationS = 60): RunResult {
   return { score, distanceM: score / 2, gatesCleared: Math.floor(score / 100), durationS };
@@ -69,6 +69,20 @@ describe('SessionBoard totals', () => {
     board.record(run(900, 90));
     expect(board.runCount).toBe(3);
     expect(board.totalDurationS).toBeCloseTo(181.75);
+  });
+});
+
+describe('boardsPerMode', () => {
+  it('keeps each mode’s best, ranks and totals apart', () => {
+    const boards = boardsPerMode();
+    boards.board.record(run(400, 30));
+    expect(boards.handheld.bestScore).toBeNull();
+    expect(boards.handheld.record(run(900, 45))).toEqual({ rank: 1, previousBest: null, isNewBest: false });
+    expect(boards.board.bestScore).toBe(400);
+    expect(boards.board.record(run(500))).toEqual({ rank: 1, previousBest: 400, isNewBest: true });
+    expect(boards.handheld.bestScore).toBe(900);
+    expect([boards.board.runCount, boards.handheld.runCount]).toEqual([2, 1]);
+    expect(boards.handheld.totalDurationS).toBe(45);
   });
 });
 

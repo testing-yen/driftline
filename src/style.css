@@ -62,6 +62,49 @@ html, body {
   }
 }
 
+/* Side by side where they fit (desktop, landscape), stacked on a portrait phone. */
+#ui .mode-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin: 14px 0 6px;
+}
+
+#ui .mode-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  text-align: left;
+  font: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+#ui .mode-choice strong {
+  font-size: 19px;
+}
+
+#ui .mode-choice span {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #c9d6e8;
+}
+
+#ui .mode-choice[aria-checked='true'] {
+  background: rgba(255, 211, 77, 0.16);
+  border-color: #ffd34d;
+  cursor: default;
+}
+
+#ui .mode-choice[aria-checked='true'] strong::after {
+  content: ' ✓';
+  color: #ffd34d;
+}
+
 #ui .panel h1 {
   margin: 0 0 8px;
   font-size: 34px;

@@ -1,5 +1,6 @@
 import { formatDuration, type RecordOutcome, type RunResult, type SessionBoard } from '../game/session.js';
 import type { TiltInput } from '../input/TiltInput.js';
+import type { ModeCopy } from './modePicker.js';
 import { recenterButton } from './recenter.js';
 
 const BOARD_ROWS = 5;
@@ -12,12 +13,16 @@ export interface GameOverOptions {
   run: RunResult;
   outcome: RecordOutcome;
   board: SessionBoard;
+  /** The play mode the board belongs to; null for keyboard and touch-drag. */
+  mode: ModeCopy | null;
   input: TiltInput;
   onRideAgain: () => void;
+  /** Back to the start menu to pick the other play mode; offered only when there is a mode. */
+  onChangeMode: () => void;
 }
 
 /** Replace the UI layer with the end-of-run summary and session scoreboard. */
-export function showGameOver({ ui, run, outcome, board, input, onRideAgain }: GameOverOptions): void {
+export function showGameOver({ ui, run, outcome, board, mode, input, onRideAgain, onChangeMode }: GameOverOptions): void {
   ui.innerHTML = '';
   const panel = el('div', 'panel gameover');
 
@@ -42,12 +47,19 @@ export function showGameOver({ ui, run, outcome, board, input, onRideAgain }: Ga
   if (input.needsUserGesture) {
     actions.append(recenterButton(input, ride));
   }
+  if (mode) {
+    const change = el('button', 'btn secondary', 'Change mode');
+    change.addEventListener('click', onChangeMode);
+    actions.append(change);
+  }
   summary.append(actions);
 
   const session = el('section', 'go-board');
-  session.append(el('h2', 'go-heading', 'This session'), scoreTable(board, run, outcome));
+  const heading = mode ? `This session · ${mode.label}` : 'This session';
+  session.append(el('h2', 'go-heading', heading), scoreTable(board, run, outcome));
+  const timeLabel = mode?.sessionTime ?? 'Session plank time';
   session.append(
-    el('p', 'go-total', `Session plank time: ${formatDuration(board.totalDurationS)} · ${plural(board.runCount, 'run')}`),
+    el('p', 'go-total', `${timeLabel}: ${formatDuration(board.totalDurationS)} · ${plural(board.runCount, 'run')}`),
   );
 
   panel.append(summary, session);

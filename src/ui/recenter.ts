@@ -1,4 +1,5 @@
 import type { TiltInput } from '../input/TiltInput.js';
+import { MODE_COPY } from './modePicker.js';
 
 const RECENTER_CONFIRM_MS = 1500;
 
@@ -24,7 +25,7 @@ export function recenterButton(input: TiltInput, primary: HTMLButtonElement): HT
     primary.disabled = true;
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    button.textContent = 'Hold the board level…';
+    button.textContent = MODE_COPY[input.angles?.profile.mode ?? 'board'].holdNeutral;
     input.calibrate();
     whenCalibrated(input, () => {
       button.removeAttribute('aria-busy');

@@ -89,10 +89,24 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
 3. On the iPhone (any network), open the HTTPS URL. Tap
    **"Enable motion & start"** — iOS 13+ requires motion permission to be
    granted from a user gesture, which is what that button does.
-4. Mount the phone in **portrait, screen facing up, top edge pointing
-   forward** on the board. Hold the board level while the game calibrates
-   neutral (~1 second), then ride.
-5. **Calibrate your board** once, and again whenever the hardware changes. Tap
+4. Pick a play mode on the start screen. The phone remembers it
+   (localStorage key `driftline.playMode.v1`); the desktop keyboard has no
+   modes.
+   - **Board** (default): mount the phone in **portrait, screen facing up, top
+     edge pointing forward** on the board. Hold the board level while the game
+     calibrates neutral (~1 second), then ride.
+   - **Handheld**: hold the phone in portrait however is comfortable, keep it
+     still while the game calibrates neutral, then ride. Tilt the top edge
+     **toward you** to go faster (tilting it away does nothing), and tilt left
+     or right to steer and flip. Full lean is `handheldFullLeanDeg` (20°) from
+     your neutral in every direction. There is no floor, so no **Lift the
+     edge!** and no board calibration.
+
+   Lean is measured from the gravity direction at neutral, not from flat, so
+   a phone held at 45° or 60° steers as evenly as one lying flat. Each mode
+   keeps its own session scoreboard and best; **Change mode** on the
+   game-over panel returns to the start screen without wiping either.
+5. **Calibrate your board** (Board mode) once, and again whenever the hardware changes. Tap
    **Calibrate board** on the start screen or the Paused panel:
    1. Hold the board level while it measures neutral.
    2. Push the forward edge to the floor and hold still until the bar fills
@@ -163,11 +177,12 @@ src/
   dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites
   input/
     TiltInput.ts           # the interface the game sees
-    tiltMath.ts            # dead zone, low-pass, calibration (tested)
+    tiltMath.ts            # dead zone, low-pass, neutral gravity frame, calibration (tested)
+    playMode.ts            # board / handheld lean profiles, stored mode (tested)
     boardReach.ts          # per-board reach: lean normalization, grounded, storage (tested)
     reachCalibration.ts    # Calibrate board step machine (tested)
     KeyboardTiltInput.ts   # desktop dev/testing
-    DeviceMotionTiltInput.ts # real phone IMU
+    DeviceMotionTiltInput.ts # real phone IMU, mapped by the play mode's profile (tested)
   game/
     game.ts          # fixed-timestep loop, physics, scoring orchestration
     world.ts         # procedural course generation: obstacles, gates, ramps (seeded RNG, tested)

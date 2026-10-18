@@ -1,15 +1,16 @@
 import './style.css';
 import { Game } from './game/game.js';
 import { Renderer } from './game/renderer.js';
-import { SessionBoard } from './game/session.js';
+import { SessionBoard, boardsPerMode } from './game/session.js';
 import { loadReach } from './input/boardReach.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
-import { LEAN_PROFILES, loadPlayMode } from './input/playMode.js';
+import { LEAN_PROFILES, loadPlayMode, savePlayMode } from './input/playMode.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { MODE_COPY, modePicker } from './ui/modePicker.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -19,7 +20,9 @@ const isTouchDevice =
   'ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0;
 
 // Outlive every Game: each restart builds a fresh one.
-const board = new SessionBoard();
+const boards = boardsPerMode();
+// Keyboard and touch-drag have no play mode, so they keep a scoreboard of their own.
+const keysBoard = new SessionBoard();
 const renderer = new Renderer(canvas);
 let game: Game | null = null;
 let wakeLock: WakeLockSentinel | null = null;
@@ -49,9 +52,10 @@ function showMenu(input: TiltInput): void {
   sub.textContent =
     'Tilt to carve downhill. Thread the gates, dodge pines and rocks — and don’t let the avalanche golem catch you.';
 
+  const angles = input.angles;
   const controls = document.createElement('p');
-  controls.textContent = input.needsUserGesture
-    ? 'Mount the phone in portrait, hold the board level, then tap Start. New board? Tap Calibrate board first. If your neutral drifts, tap ⏸ and Re\u2011center.'
+  controls.textContent = angles
+    ? MODE_COPY[angles.profile.mode].instructions
     : 'Arrows / WASD or drag to steer. Hold Up to lean forward (faster); let go to slow down.';
 
   const startBtn = document.createElement('button');
@@ -76,10 +80,19 @@ function showMenu(input: TiltInput): void {
     }
   });
 
-  panel.append(title, sub, controls, startBtn);
-
-  const angles = input.angles;
+  panel.append(title, sub);
   if (angles) {
+    panel.append(
+      modePicker(angles.profile.mode, (mode) => {
+        angles.profile = LEAN_PROFILES[mode];
+        savePlayMode(mode);
+        showMenu(input);
+      }),
+    );
+  }
+  panel.append(controls, startBtn);
+
+  if (angles?.profile.calibratesReach) {
     const calibrate = calibrateBoardButton(async () => {
       calibrate.disabled = true;
       errLine.textContent = '';
@@ -129,6 +142,8 @@ function pauseGame(): void {
 function startGame(input: TiltInput): void {
   showPauseButton(ui, pauseGame);
   game?.stop();
+  const mode = input.angles?.profile.mode;
+  const board = mode ? boards[mode] : keysBoard;
   game = new Game(renderer, input, board.bestScore);
   game.onGameOverCallback((run) => {
     const outcome = board.record(run);
@@ -137,7 +152,16 @@ function startGame(input: TiltInput): void {
       void requestWakeLock();
       startGame(input);
     };
-    showGameOver({ ui, run, outcome, board, input, onRideAgain });
+    showGameOver({
+      ui,
+      run,
+      outcome,
+      board,
+      mode: mode ? MODE_COPY[mode] : null,
+      input,
+      onRideAgain,
+      onChangeMode: () => showMenu(input),
+    });
   });
   game.start();
 }

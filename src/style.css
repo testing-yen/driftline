@@ -132,6 +132,10 @@ html, body {
   cursor: pointer;
 }
 
+#ui .btn[hidden] {
+  display: none;
+}
+
 #ui .btn.secondary {
   background: transparent;
   color: #ffd34d;

@@ -65,6 +65,23 @@ function showMenu(input: TiltInput): void {
   const errLine = document.createElement('p');
   errLine.className = 'err';
 
+  // Handheld mode covers riders without a board, so touch-drag is only the
+  // fallback for when motion is denied or unsupported.
+  const dragBtn = document.createElement('button');
+  dragBtn.className = 'btn secondary';
+  dragBtn.textContent = 'Use touch-drag instead';
+  dragBtn.hidden = true;
+  dragBtn.addEventListener('click', () => {
+    const kb = new KeyboardTiltInput();
+    kb.attach(canvas);
+    kb.start();
+    showMenu(kb);
+  });
+  const motionFailed = (err: unknown) => {
+    errLine.textContent = `${err instanceof Error ? err.message : String(err)} You can still play with touch-drag.`;
+    dragBtn.hidden = false;
+  };
+
   startBtn.addEventListener('click', async () => {
     startBtn.disabled = true;
     errLine.textContent = '';
@@ -75,7 +92,7 @@ function showMenu(input: TiltInput): void {
       await requestWakeLock();
       startGame(input);
     } catch (err) {
-      errLine.textContent = err instanceof Error ? err.message : String(err);
+      motionFailed(err);
       startBtn.disabled = false;
     }
   });
@@ -101,7 +118,7 @@ function showMenu(input: TiltInput): void {
         await input.start();
         showCalibration({ ui, input, angles, onClose: () => showMenu(input) });
       } catch (err) {
-        errLine.textContent = err instanceof Error ? err.message : String(err);
+        motionFailed(err);
         calibrate.disabled = false;
       }
     });
@@ -109,18 +126,7 @@ function showMenu(input: TiltInput): void {
   }
   panel.append(errLine);
 
-  if (input.needsUserGesture) {
-    const kbBtn = document.createElement('button');
-    kbBtn.className = 'btn secondary';
-    kbBtn.textContent = 'Use touch-drag instead';
-    kbBtn.addEventListener('click', () => {
-      const kb = new KeyboardTiltInput();
-      kb.attach(canvas);
-      kb.start();
-      showMenu(kb);
-    });
-    panel.append(kbBtn);
-  }
+  if (input.needsUserGesture) panel.append(dragBtn);
 
   ui.append(panel);
 }

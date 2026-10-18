@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config.js';
 import { viewScale } from '../src/game/renderer.js';
 import {
-  BEAST,
   BEAST_LUNGE_DISTANCE,
+  BEAST_STYLES,
+  BEASTS,
   beastFrame,
   devicePxPerSpritePx,
+  isBeastStyle,
   LeanTracker,
   PLAYER,
   TRANSPARENT,
@@ -14,7 +16,7 @@ import {
 
 const SHEETS: [string, SpriteSheet<string>, number, number][] = [
   ['player', PLAYER, 24, 32],
-  ['beast', BEAST, 32, 32],
+  ...BEAST_STYLES.map((style): [string, SpriteSheet<string>, number, number] => [`${style} beast`, BEASTS[style], 32, 32]),
 ];
 
 describe.each(SHEETS)('%s sprite sheet', (_, sheet, width, height) => {
@@ -44,6 +46,20 @@ describe.each(SHEETS)('%s sprite sheet', (_, sheet, width, height) => {
     expect(sheet.anchor.x).toBeLessThan(width);
     expect(sheet.anchor.y).toBeGreaterThan(0);
     expect(sheet.anchor.y).toBeLessThan(height);
+  });
+});
+
+describe.each(BEAST_STYLES)('%s beast frames', (style) => {
+  it('glide A, glide B and lunge are three different pictures', () => {
+    const { glideA, glideB, lunge } = BEASTS[style].frames;
+    expect(new Set([glideA, glideB, lunge].map((rows) => rows.join('\n'))).size).toBe(3);
+  });
+});
+
+describe('isBeastStyle', () => {
+  it('accepts every style and nothing else', () => {
+    for (const style of BEAST_STYLES) expect(isBeastStyle(style)).toBe(true);
+    for (const other of [null, '', 'yeti', 'Wolf', 'BEAST']) expect(isBeastStyle(other)).toBe(false);
   });
 });
 

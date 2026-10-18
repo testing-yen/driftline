@@ -146,7 +146,7 @@ src/
   main.ts            # boot, menu UI, wake lock, PWA registration
   config.ts          # ALL tuning constants
   pwa.ts             # service worker registration
-  dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites
+  dev/spriteSheet.ts # dev-only sprite sheet: open the dev server with ?sprites (?beast=… picks the chaser)
   input/
     TiltInput.ts           # the interface the game sees
     tiltMath.ts            # dead zone, low-pass, calibration (tested)
@@ -177,7 +177,11 @@ scratch for this project:
   original author.)
 - All art is drawn in code: geometric pines, rocks and gates, plus our own
   pixel-art rider and chaser written as character maps in `sprites.ts`. The
-  chaser is an original "shadow beast", not the SkiFree yeti.
+  chaser is an original "shadow beast", not the SkiFree yeti. Dev builds can
+  swap in three candidate chasers with `?beast=wraith|golem|wolf`: a hooded
+  wraith, a snow-and-ice golem and a wolf. They are original creatures in a
+  plain early-90s palette of white, grey, black and red. Only the colours are
+  period style, and none of them is a yeti or any other white ape.
 - The name "SkiFree" (and the yeti character) are not used anywhere.
 - Game *mechanics* (steer downhill, dodge obstacles, timed gates) are not
   copyrightable; only creative expression is — and ours is original.

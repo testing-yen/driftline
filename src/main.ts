@@ -2,6 +2,7 @@ import './style.css';
 import { Game } from './game/game.js';
 import { Renderer } from './game/renderer.js';
 import { SessionBoard } from './game/session.js';
+import { BEASTS, isBeastStyle, SHADOW_BEAST } from './game/sprites.js';
 import { loadReach } from './input/boardReach.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
@@ -19,9 +20,15 @@ const isTouchDevice =
 
 // Outlive every Game: each restart builds a fresh one.
 const board = new SessionBoard();
-const renderer = new Renderer(canvas);
+const renderer = new Renderer(canvas, import.meta.env.DEV ? devBeast() : SHADOW_BEAST);
 let game: Game | null = null;
 let wakeLock: WakeLockSentinel | null = null;
+
+/** Dev-only `?beast=wraith|golem|wolf|shadow` to try a candidate beast; anything else is the shadow beast. */
+function devBeast() {
+  const style = new URLSearchParams(location.search).get('beast');
+  return isBeastStyle(style) ? BEASTS[style] : SHADOW_BEAST;
+}
 
 async function requestWakeLock(): Promise<void> {
   if (wakeLock && !wakeLock.released) return;

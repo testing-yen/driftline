@@ -1,16 +1,25 @@
 import { viewScale } from '../game/renderer.js';
-import { BEAST, bakeFrames, devicePxPerSpritePx, PLAYER, type SpriteSheet } from '../game/sprites.js';
+import { BEASTS, bakeFrames, devicePxPerSpritePx, PLAYER, type SpriteSheet } from '../game/sprites.js';
 
-const GAP = 12;
-const LABEL_H = 18;
+const GAP = 10;
+const LABEL_H = 16;
+
+interface Row {
+  name: string;
+  sheet: SpriteSheet<string>;
+  baked: Record<string, HTMLCanvasElement>;
+}
 
 /**
- * Dev-only sprite sheet, opened with `?sprites`: every frame enlarged, then
- * again at the size the game draws it on this screen, on plain snow.
+ * Dev-only sprite sheet, opened with `?sprites`: the rider and every beast
+ * style, each row showing all frames enlarged and then again at the size the
+ * game draws them on this screen, on plain snow.
  */
 export function showSpriteSheet(canvas: HTMLCanvasElement): void {
-  const player = bakeFrames(PLAYER);
-  const beast = bakeFrames(BEAST);
+  const rows: Row[] = [
+    { name: 'rider', sheet: PLAYER, baked: bakeFrames(PLAYER) },
+    ...Object.entries(BEASTS).map(([name, sheet]) => ({ name: `?beast=${name}`, sheet, baked: bakeFrames(sheet) })),
+  ];
   const draw = () => {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = window.innerWidth;
@@ -30,36 +39,44 @@ export function showSpriteSheet(canvas: HTMLCanvasElement): void {
 
     // In CSS px, matching what the renderer draws for this screen and dpr (ignoring safe-area insets).
     const gameSize = devicePxPerSpritePx(dpr * viewScale(w, 0)) / dpr;
-    let y = GAP;
-    y = drawRow(ctx, PLAYER, player, y, bigZoom(PLAYER, w));
-    y = drawRow(ctx, BEAST, beast, y, bigZoom(BEAST, w));
-    y = drawRow(ctx, PLAYER, player, y, gameSize);
-    drawRow(ctx, BEAST, beast, y, gameSize);
+    let zoom = 8;
+    while (zoom > 1 && layout(rows, zoom, gameSize, w, null) > h) zoom -= 1;
+    layout(rows, zoom, gameSize, w, ctx);
   };
   draw();
   window.addEventListener('resize', draw);
 }
 
-/** Draws every frame of a sheet left to right at `scale` CSS px per sprite px; returns the next row's y. */
-function drawRow<F extends string>(
-  ctx: CanvasRenderingContext2D,
-  sheet: SpriteSheet<F>,
-  baked: Record<F, HTMLCanvasElement>,
-  y: number,
-  scale: number,
-): number {
-  let x = GAP;
-  for (const name of Object.keys(sheet.frames) as F[]) {
-    ctx.fillStyle = '#22303f';
-    ctx.fillText(name, x, y);
-    ctx.drawImage(baked[name], x, y + LABEL_H, sheet.width * scale, sheet.height * scale);
-    x += Math.max(sheet.width * scale, ctx.measureText(name).width) + GAP;
+/**
+ * Lays each row out left to right (frames at `zoom`, then at `gameSize`),
+ * wrapping at the screen edge. Draws when given a context; returns the height used.
+ */
+function layout(rows: Row[], zoom: number, gameSize: number, screenW: number, ctx: CanvasRenderingContext2D | null): number {
+  let y = GAP;
+  for (const { name, sheet, baked } of rows) {
+    if (ctx) {
+      ctx.fillStyle = '#22303f';
+      ctx.fillText(name, GAP, y);
+    }
+    y += LABEL_H;
+    let x = GAP;
+    let lineH = 0;
+    const frames = Object.keys(sheet.frames);
+    for (const scale of [zoom, gameSize]) {
+      const fw = sheet.width * scale;
+      const fh = sheet.height * scale;
+      for (const frame of frames) {
+        if (x + fw > screenW - GAP && x > GAP) {
+          y += lineH + GAP;
+          x = GAP;
+          lineH = 0;
+        }
+        ctx?.drawImage(baked[frame], x, y, fw, fh);
+        x += fw + GAP;
+        lineH = Math.max(lineH, fh);
+      }
+    }
+    y += lineH + GAP;
   }
-  return y + LABEL_H + sheet.height * scale + GAP;
-}
-
-/** Largest whole zoom that fits a row of every frame across the screen. */
-function bigZoom<F extends string>(sheet: SpriteSheet<F>, screenW: number): number {
-  const count = Object.keys(sheet.frames).length;
-  return Math.max(1, Math.floor((screenW - GAP * (count + 1)) / (sheet.width * count)));
+  return y;
 }

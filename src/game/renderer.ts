@@ -2,8 +2,8 @@ import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import {
-  BEAST,
   bakeFrames,
+  type BeastFrame,
   beastFrame,
   devicePxPerSpritePx,
   LeanTracker,
@@ -92,15 +92,19 @@ export class Renderer {
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
   private readonly playerFrames = bakeFrames(PLAYER);
-  private readonly beastFrames = bakeFrames(BEAST);
+  private readonly beastFrames: Record<BeastFrame, HTMLCanvasElement>;
   private readonly lean = new LeanTracker();
   /** What the sprite draws need beyond their position, captured at the top of render(). */
   private frame = { time: 0, caught: false, rider: { x: 0, y: 0 } };
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly beast: SpriteSheet<BeastFrame>,
+  ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D not supported');
     this.ctx = ctx;
+    this.beastFrames = bakeFrames(beast);
     this.insetProbe = document.createElement('div');
     this.insetProbe.style.cssText =
       'position:fixed;visibility:hidden;pointer-events:none;' +
@@ -347,7 +351,7 @@ export class Renderer {
   private drawChaser(x: number, y: number): void {
     const { time, caught, rider } = this.frame;
     const frame = beastFrame(time, Math.hypot(rider.x - x, rider.y - y), caught);
-    this.drawSprite(BEAST, this.beastFrames, frame, x, y);
+    this.drawSprite(this.beast, this.beastFrames, frame, x, y);
   }
 
   /**

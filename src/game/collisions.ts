@@ -1,3 +1,5 @@
+import type { Ramp } from './types.js';
+
 /** Pure collision / crossing helpers. No side effects, fully testable. */
 
 /** Circle-vs-circle collision. */
@@ -23,4 +25,9 @@ export function gateCrossed(prevY: number, newY: number, gateY: number): boolean
 /** Was the player inside the gate opening when crossing? */
 export function gatePassed(playerX: number, centerX: number, halfWidth: number): boolean {
   return Math.abs(playerX - centerX) <= halfWidth;
+}
+
+/** Did the player ride over the ramp's lip this frame? */
+export function rampHit(prevY: number, newY: number, playerX: number, ramp: Ramp): boolean {
+  return gateCrossed(prevY, newY, ramp.y) && gatePassed(playerX, ramp.x, ramp.halfWidth);
 }

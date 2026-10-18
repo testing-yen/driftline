@@ -29,6 +29,29 @@ export type Gate =
   | (GateBase & { state: 'cleared'; points: number; resolvedAt: number })
   | (GateBase & { state: 'missed'; resolvedAt: number });
 
+/** A snow kicker. y is its take-off lip; the ramp itself runs uphill of it. */
+export interface Ramp {
+  id: number;
+  x: number;
+  y: number;
+  halfWidth: number;
+}
+
+export type SpinDir = 'left' | 'right';
+
+/** Times are game time in seconds. */
+export interface Jump {
+  startedAt: number;
+  /** Seconds from takeoff to touchdown. */
+  duration: number;
+  /** Locked speed for the whole jump, px/s. */
+  speed: number;
+  /** The one spin this jump may have, from when it started. */
+  spin: { dir: SpinDir; startedAt: number } | null;
+  /** The board's edge hit the floor at some point in the air, which voids the trick. */
+  touchedFloor: boolean;
+}
+
 export interface PlayerState {
   x: number;
   y: number;
@@ -37,6 +60,10 @@ export interface PlayerState {
   stumbleTimer: number;
   /** Seconds remaining of post-crash invulnerability. */
   invulnTimer: number;
+  /** In the air off a ramp; null on the snow. */
+  jump: Jump | null;
+  /** Seconds remaining of the slow speed easing after a clean landing (0 = normal easing). */
+  landingCarry: number;
 }
 
 export type GamePhase = 'menu' | 'playing' | 'paused' | 'gameover';

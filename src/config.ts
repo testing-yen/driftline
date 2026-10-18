@@ -13,6 +13,7 @@ export const CONFIG = {
   fullLeanSpeed: 468, // px/s at full forward lean (fullLeanFraction of the forward reach)
   steerSpeed: 460, // px/s lateral movement at full tilt
   playerRadius: 14, // collision radius of the rider, px
+  speedEaseRate: 6, // 1/s: speed closes on the lean target with a ~0.17 s time constant
 
   /** Playfield */
   worldHalfWidth: 520, // half-width of the skiable slope, px
@@ -42,6 +43,25 @@ export const CONFIG = {
   gateHalfWidth: 70, // half-width of a gate opening, px
   gatePopupDuration: 0.9, // seconds the "+N" / miss mark stays visible
   gatePopupRise: 40, // px the "+N" popup floats up while fading
+
+  /** Jump ramps */
+  rampEveryGates: 2.5, // on average one ramp per this many gates (about one every 2-3 gates)
+  rampHalfWidth: 44, // half-width of the take-off lip, px; the rider's centre must cross the lip within it
+  rampLength: 55, // footprint of the ramp uphill of its lip, px
+  rampClearance: 110, // trees, rocks and gate lines stay at least this far from a ramp's footprint, px
+  typicalTakeoffSpeed: 350, // px/s, a rider leaning well forward...
+  airTimeAtTypicalSpeed: 1.0, // ...is in the air this long, s; air time is proportional to takeoff speed
+  minAirTimeS: 0.6, // even a slow takeoff leaves room to start a spin
+  maxAirTimeS: 1.4, // hang time cap, s
+  airSpeedBoost: 1.3, // speed in the air is takeoff speed × this (no snow friction), so jumps help outrun the golem
+  jumpScore: 50, // points per jump
+  trickScore: 100, // points for a spin completed before landing
+  // Both lean fractions are of full lean (the steering input's ±1) and depend on the hardware:
+  // they must stay well inside the grounded threshold, so re-tune them with fullLeanFraction / groundedFraction.
+  trickLeanFraction: 0.6, // lateral lean in the air past this starts a spin that way
+  landingCrashLean: 0.6, // lateral lean at touchdown at or past this crashes the landing
+  spinDurationS: 0.5, // one full spin; still spinning at touchdown crashes the landing
+  landingCarryS: 1.0, // after a clean landing, speed eases from air speed to the lean target over about this long, s
 
   /** Chaser ("avalanche golem") — the run timer */
   chaserTriggerDistance: 4500, // px travelled before the chaser appears (~17s in)

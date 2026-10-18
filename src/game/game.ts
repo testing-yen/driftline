@@ -17,7 +17,7 @@ const STEP = 1 / 60;
  */
 export class Game {
   phase: GamePhase = 'menu';
-  private player: PlayerState = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0 };
+  private player: PlayerState = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0, jump: null, landingCarry: 0 };
   private world = new World(Date.now() % 2147483647);
   private chaser = new Chaser();
   /** Speed the current lean is easing toward, kept for the speed gauge. */
@@ -110,7 +110,7 @@ export class Game {
   }
 
   private reset(): void {
-    this.player = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0 };
+    this.player = { x: 0, y: 0, speed: CONFIG.flatSpeed, stumbleTimer: 0, invulnTimer: 0, jump: null, landingCarry: 0 };
     this.world = new World(Date.now() % 2147483647);
     this.chaser.reset();
     this.targetSpeed = CONFIG.flatSpeed;

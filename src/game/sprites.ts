@@ -1,7 +1,7 @@
 /**
- * Pixel-art sprites for the rider and the beast, plus the rules that pick a
- * frame. ORIGINAL ART drawn for Driftline: nothing here derives from SkiFree,
- * and the beast is not a yeti.
+ * Pixel-art sprites for the rider, the beast and the jump ramp, plus the
+ * rules that pick a frame. ORIGINAL ART drawn for Driftline: nothing here
+ * derives from SkiFree, the beast is not a yeti, and the ramp is our own kicker.
  *
  * A frame is a list of rows with one character per pixel, looked up in the
  * sheet's palette; '.' is transparent. Downhill is down the screen, so the
@@ -20,8 +20,19 @@ export interface SpriteSheet<F extends string> {
   readonly frames: Readonly<Record<F, readonly string[]>>;
 }
 
-export type PlayerFrame = 'straight' | 'left' | 'right' | 'crashed';
+/** The flip* frames only show during a front flip, in the order FLIP_FRAMES lists them. */
+export type PlayerFrame =
+  | 'straight'
+  | 'left'
+  | 'right'
+  | 'crashed'
+  | 'flipPitch'
+  | 'flipTuck'
+  | 'flipInverted'
+  | 'flipTuckUp'
+  | 'flipOpen';
 export type BeastFrame = 'glideA' | 'glideB' | 'lunge';
+export type RampFrame = 'kicker';
 export type Lean = Extract<PlayerFrame, 'straight' | 'left' | 'right'>;
 
 export const PLAYER: SpriteSheet<PlayerFrame> = {
@@ -173,6 +184,176 @@ export const PLAYER: SpriteSheet<PlayerFrame> = {
       '..obo..............ooo..',
       '...o....................',
     ],
+    flipPitch: [
+      '........................',
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '....oooobwbbbbbBoooo....',
+      '...oOOOOoooooooooOOOdo..',
+      '..oOOOOOOOOOOOOOOOOOdo..',
+      '..oOOOOOOOOOOOOOOOOOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOobbbbbbbbbbbBoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..ooooOOOOOOOOOOOdoooo..',
+      '......oddOOOOOOddo......',
+      '......oBBBBBBBBBBo......',
+      '.....oBBBBooooBBBBo.....',
+      '.....oBBBo....oBBBo.....',
+      '....oBBBBBo..oBBBBBo....',
+      '....ooooooo..ooooooo....',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '.......o........o.......',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipTuck: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '......ooo......ooo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '.....ooooo....ooooo.....',
+      '.....oBBBo....oBBBo.....',
+      '....ooBBBBooooBBBBoo....',
+      '.ooo.oBBBBBBBBBBBBo.ooo.',
+      'oBBBooBBBBBBBBBBBBooBBBo',
+      'oBBBoddOOOOOOOOOOddoBBBo',
+      '.oOOoOOOOOOOOOOOOOOoOdo.',
+      '.oOOoOOOOOOOOOOOOOdoOdo.',
+      '.oOOobbbbbbbbbbbbbBoOdo.',
+      '.oOOoOOOOOOOOOOOOOdoOdo.',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '...oOOOOOOOOOOOOOOOdo...',
+      '...oOOOOOOooooOOOOOdo...',
+      '....oOOOoBBBBBBoOOdo....',
+      '.....oooBBBBBBBBooo.....',
+      '.......obwwbbbbBo.......',
+      '.......obwbbbbbBo.......',
+      '........oobbbboo........',
+      '..........oooo..........',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipInverted: [
+      '.......o........o.......',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '....ooooooo..ooooooo....',
+      '....oBBBBBo..oBBBBBo....',
+      '.....oBBBo....oBBBo.....',
+      '......oBBBo..oBBBo......',
+      '......ooBBBooBBBoo......',
+      '......ooBBBBBBBBoo......',
+      '......oddOOOOOOddo......',
+      '..ooooOOOOOddOOOOdoooo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '...oOOOOOOOddOOOOOOdo...',
+      '...oOOOOOOooooOOOOOdo...',
+      '....oOOOoBBBBBBoOOdo....',
+      '.....oooBBBBBBBBooo.....',
+      '.......oBwwwwwwBo.......',
+      '.......oowwwwwwoo.......',
+      '.......obwwbbbbBo.......',
+      '........oobbbboo........',
+      '..........oooo..........',
+      '........................',
+    ],
+    flipTuckUp: [
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '.......oowwwwwwoo.......',
+      '.......oBwwwwwwBo.......',
+      '.....oooBBBBBBBBooo.....',
+      '....oOOOoBBBBBBoOOdo....',
+      '...oOOOOOOooooOOOOOdo...',
+      '..oOOoOOOOOddOOOOdoOdo..',
+      '..oOOoBBBBBooBBBBBoOdo..',
+      '..oBBoBBBBBooBBBBBoBBo..',
+      '..oBBoBBBBBooBBBBBoBBo..',
+      '..ooooBBBBBooBBBBBoooo..',
+      '......oBBBBooBBBBo......',
+      '.....oowwoo..oowwoo.....',
+      '......obbo....obbo......',
+      '.......oo......oo.......',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+      '........................',
+    ],
+    flipOpen: [
+      '........................',
+      '........................',
+      '..........oooo..........',
+      '........oobbbboo........',
+      '.......obwwbbbbBo.......',
+      '.......obwbbbbbBo.......',
+      '.......oBBBBBBBBo.......',
+      '.....oooBbbbbbbBooo.....',
+      '....oOOOoBBBBBBoOOdo....',
+      '...oOOOOOOooooOOOOOdo...',
+      '...oOOOOOOOOOOOOOOOdo...',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..oOOobbbbbbbbbbbBoOdo..',
+      '..oOOoOOOOOOOOOOOdoOdo..',
+      '..ooooOOOOOOOOOOOdoooo..',
+      '......oddOOOOOOddo......',
+      '.....ooBBBBBBBBBBoo.....',
+      '....oBBBBooooooBBBBo....',
+      '....oBBBBo....oBBBBo....',
+      '....oBBBBBo..oBBBBBo....',
+      '....ooooooo..ooooooo....',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......obo......obo......',
+      '......owo......owo......',
+      '......owo......owo......',
+      '......obo......obo......',
+      '.......o........o.......',
+      '........................',
+      '........................',
+      '........................',
+    ],
   },
 };
 
@@ -301,6 +482,63 @@ export const BEAST: SpriteSheet<BeastFrame> = {
     ],
   },
 };
+
+/**
+ * Snow kicker seen from uphill: a packed-snow run-in, widening toward the
+ * lip, with orange chevrons pointing the way off it; then the bright lip,
+ * the dark take-off edge and the shaded face that drops to the snow.
+ * Anchored on the take-off edge, which is the ramp's y.
+ */
+export const RAMP: SpriteSheet<RampFrame> = {
+  width: 32,
+  height: 19,
+  anchor: { x: 16, y: 15 },
+  palette: {
+    o: '#1d2b44', // outline and take-off edge
+    w: '#ffffff', // packed-snow lip
+    l: '#cfdcf0', // run-in surface
+    s: '#93a9cb', // run-in edges, shadow on the snow
+    d: '#46689e', // side walls, taller toward the lip, and the face under it
+    a: '#ff922b', // chevrons, the gauge's "fast" orange
+  },
+  frames: {
+    kicker: [
+      '........ssssssssssssssss........',
+      '........ssssssssssssssss........',
+      '.....oddsllllllllllllllsddo.....',
+      '.....oddsllaaallllaaallsddo.....',
+      '.....oddslllaaallaaalllsddo.....',
+      '....oddslllllaallaalllllsddo....',
+      '...odddsllllllaaaallllllsdddo...',
+      '...odddsllllllllllllllllsdddo...',
+      '..odddsllllaaallllaaallllsdddo..',
+      '..odddslllllaaallaaalllllsdddo..',
+      '.oddddsllllllaallaallllllsddddo.',
+      'oddddsllllllllaaaallllllllsddddo',
+      'oddddsllllllllllllllllllllsddddo',
+      'owwwwwwwwwwwwwwwwwwwwwwwwwwwwwwo',
+      'owwwwwwwwwwwwwwwwwwwwwwwwwwwwwwo',
+      'oooooooooooooooooooooooooooooooo',
+      '.dddddddddddddddddddddddddddddd.',
+      '..ssssssssssssssssssssssssssss..',
+      '.....ssssssssssssssssssssss.....',
+    ],
+  },
+};
+
+/**
+ * A front flip seen from behind: the rider ducks their head and pitches
+ * forward, tucks with their back to us and head downhill, goes upside down
+ * (front to us, skis pointing uphill), tucks again facing us with the head
+ * back uphill, then opens out to land.
+ */
+const FLIP_FRAMES: readonly PlayerFrame[] = ['flipPitch', 'flipTuck', 'flipInverted', 'flipTuckUp', 'flipOpen'];
+
+/** Rider frame `progress` (0..1) of the way through a flip; a finished flip rides straight. */
+export function flipFrame(progress: number): PlayerFrame {
+  if (progress >= 1) return 'straight';
+  return FLIP_FRAMES[Math.floor(Math.max(0, progress) * FLIP_FRAMES.length)];
+}
 
 /** World px per sprite px the renderer aims for; it rounds so each sprite px is whole device px. */
 const SPRITE_WORLD_PX = 2.6;

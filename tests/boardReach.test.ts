@@ -52,6 +52,13 @@ describe('leanFromAngles', () => {
     expect(leanFromAngles(past, past, REACH).y).toBeGreaterThan(0);
   });
 
+  it('flags sideGrounded only for the left and right edges, not forward or back', () => {
+    expect(leanFromAngles(0, groundAt(REACH.forward), REACH)).toMatchObject({ grounded: true, sideGrounded: false });
+    expect(leanFromAngles(0, -groundAt(REACH.back), REACH)).toMatchObject({ grounded: true, sideGrounded: false });
+    expect(leanFromAngles(groundAt(REACH.right), 0, REACH)).toMatchObject({ grounded: true, sideGrounded: true });
+    expect(leanFromAngles(-groundAt(REACH.left), 0, REACH)).toMatchObject({ grounded: true, sideGrounded: true });
+  });
+
   it('is not grounded at full deflection, so top speed never needs the edge down', () => {
     expect(leanFromAngles(0, full(REACH.forward), REACH).grounded).toBe(false);
     expect(leanFromAngles(full(REACH.right), 0, REACH).grounded).toBe(false);

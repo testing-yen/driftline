@@ -27,7 +27,7 @@ export class DeviceMotionTiltInput implements TiltInput {
   readonly needsUserGesture = true;
   readonly angles: { now: LeanDegrees; range: TiltRange; reach: BoardReach };
 
-  private tilt: TiltSample = { x: 0, y: 0, grounded: false };
+  private tilt: TiltSample = { x: 0, y: 0, grounded: false, sideGrounded: false };
   private filterX = new LowPassFilter(CONFIG.lowPassAlpha);
   private filterY = new LowPassFilter(CONFIG.lowPassAlpha);
   private calibrator = new NeutralCalibrator(CONFIG.calibSamples);

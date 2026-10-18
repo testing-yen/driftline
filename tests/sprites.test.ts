@@ -8,6 +8,8 @@ import {
   devicePxPerSpritePx,
   LeanTracker,
   PLAYER,
+  RAMP,
+  flipFrame,
   TRANSPARENT,
   type SpriteSheet,
 } from '../src/game/sprites.js';
@@ -15,6 +17,7 @@ import {
 const SHEETS: [string, SpriteSheet<string>, number, number][] = [
   ['player', PLAYER, 24, 32],
   ['beast', BEAST, 32, 32],
+  ['ramp', RAMP, 32, 19],
 ];
 
 describe.each(SHEETS)('%s sprite sheet', (_, sheet, width, height) => {
@@ -75,6 +78,54 @@ describe('player frames', () => {
     };
     expect(leftHeavy(PLAYER.frames.left)).toBeGreaterThan(leftHeavy(PLAYER.frames.straight));
     expect(leftHeavy(PLAYER.frames.right)).toBeLessThan(leftHeavy(PLAYER.frames.straight));
+  });
+
+  const FLIP = ['flipPitch', 'flipTuck', 'flipInverted', 'flipTuckUp', 'flipOpen'] as const;
+
+  it('has five flip frames, each a different picture from every other frame', () => {
+    const all = Object.values(PLAYER.frames).map(key);
+    expect(new Set(all).size).toBe(all.length);
+    for (const frame of FLIP) expect(PLAYER.frames).toHaveProperty(frame);
+  });
+
+  /** Mean row of the pixels drawn in `colour`. */
+  const meanRow = (rows: readonly string[], colour: string) => {
+    const ys = rows.flatMap((row, y) => [...row].filter((ch) => ch === colour).map(() => y));
+    return ys.reduce((a, b) => a + b, 0) / ys.length;
+  };
+
+  it('goes head down through the first tuck and inverted, head up again for the second tuck and landing', () => {
+    // Jacket ('O') above the trousers ('B') is head up; below them is head down.
+    const headDown = (frame: keyof typeof PLAYER.frames) =>
+      meanRow(PLAYER.frames[frame], 'O') > meanRow(PLAYER.frames[frame], 'B');
+    expect(headDown('straight')).toBe(false);
+    expect(FLIP.map(headDown)).toEqual([false, true, true, false, false]);
+  });
+
+  it('draws both tucks compressed, shorter than the upright rider', () => {
+    const height = (rows: readonly string[]) => {
+      const drawn = rows.flatMap((row, y) => (row.replaceAll(TRANSPARENT, '') ? [y] : []));
+      return drawn[drawn.length - 1] - drawn[0] + 1;
+    };
+    const upright = height(PLAYER.frames.straight);
+    expect(height(PLAYER.frames.flipTuck)).toBeLessThan(upright * 0.75);
+    expect(height(PLAYER.frames.flipTuckUp)).toBeLessThan(upright * 0.75);
+  });
+
+  describe('flipFrame', () => {
+    it('walks pitch, tuck, inverted, tuck, open in order as the flip progresses', () => {
+      const seen = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99].map(flipFrame);
+      expect(seen.filter((frame, i) => frame !== seen[i - 1])).toEqual([...FLIP]);
+    });
+
+    it('is upside down halfway through', () => {
+      expect(flipFrame(0.5)).toBe('flipInverted');
+    });
+
+    it('rides straight once the flip is done', () => {
+      expect(flipFrame(1)).toBe('straight');
+      expect(flipFrame(1.5)).toBe('straight');
+    });
   });
 });
 

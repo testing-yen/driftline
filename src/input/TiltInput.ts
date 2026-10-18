@@ -16,6 +16,8 @@ export interface TiltSample {
   y: number;
   /** The board's edge is (nearly) on the floor, so the rider is resting on it instead of planking. */
   grounded: boolean;
+  /** The left or right edge is (nearly) on the floor. Air tricks are lateral, so only this voids one. */
+  sideGrounded: boolean;
 }
 
 /** Lean in degrees from neutral: x + right, y + forward. */

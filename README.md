@@ -10,6 +10,14 @@ for points, dodge pines and rocks — and keep an eye uphill: after a while, an
 avalanche golem picks up your scent, and it *will* catch you. A run lasts about
 60–120 seconds, which is exactly one good plank.
 
+Snow kickers on the slope launch you into the air for about a second. In the
+air you fly over trees and rocks at 1.3× your takeoff speed, which buys
+distance from the golem, and you can't steer. A hard sideways lean in the air
+spins you for a bonus, but land level: touching down mid-spin or leaning hard
+crashes you. All jump tuning (`rampEveryGates`, `airSpeedBoost`,
+`trickLeanFraction`, `landingCrashLean` and more) is in `src/config.ts`. The
+lean thresholds depend on your board, so re-tune them on the board.
+
 ## Vision
 
 Commercial "exercise games" lock the fun behind subscriptions and proprietary
@@ -129,6 +137,7 @@ and service worker make it installable and work offline after the first load).
 ```
 
 - **Unit** (`npm test`): collision detection, scoring, chaser catch-up logic,
+  jump rules and ramp placement, a ramp-hitting run against the chaser,
   input dead-zone math, per-board lean normalization, and the calibration steps. Run in CI on every push/PR.
 - **Desktop sim**: `KeyboardTiltInput` maps arrows/WASD and pointer drag to the
   same `TiltInput` interface the phone uses — tune `src/config.ts` here.
@@ -156,12 +165,13 @@ src/
     DeviceMotionTiltInput.ts # real phone IMU
   game/
     game.ts          # fixed-timestep loop, physics, scoring orchestration
-    world.ts         # procedural course generation (seeded RNG)
+    world.ts         # procedural course generation: obstacles, gates, ramps (seeded RNG, tested)
     chaser.ts        # the avalanche golem (run timer)
+    jump.ts          # pure jump rules: takeoff, air tricks, landing (tested)
     collisions.ts    # pure collision helpers (tested)
     scoring.ts       # pure scoring helpers (tested)
     renderer.ts      # Canvas 2D, original art only
-    sprites.ts       # pixel-art rider and beast frames + frame rules (tested)
+    sprites.ts       # pixel-art rider, beast and ramp frames + frame rules (tested)
     rng.ts / types.ts
 ```
 
@@ -181,9 +191,13 @@ scratch for this project:
   ice shards), not the SkiFree yeti. It uses a plain early-90s palette of
   white, grey, black and red. Only the colours are period style; the creature
   is not a yeti or any other white ape.
+- The jump ramp is our own pixel-art snow kicker (a pale run-in between
+  growing side walls, orange chevrons, a white lip and a dark take-off edge),
+  also a character map in `sprites.ts`. It is not modelled on SkiFree's ramp.
 - The name "SkiFree" (and the yeti character) are not used anywhere.
-- Game *mechanics* (steer downhill, dodge obstacles, timed gates) are not
-  copyrightable; only creative expression is — and ours is original.
+- Game *mechanics* (steer downhill, dodge obstacles, timed gates, jump
+  ramps) are not copyrightable; only creative expression is — and ours is
+  original.
 
 If you contribute art, music, or names: **make it yours, don't homage theirs.**
 

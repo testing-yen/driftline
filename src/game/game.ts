@@ -1,7 +1,7 @@
 import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
-import { circlesCollide, gateCrossed, gatePassed, rampHit } from './collisions.js';
+import { gateCrossed, gatePassed, rampHit, sweptHitsObstacle } from './collisions.js';
 import { easeSpeed, hasLanded, landing, takeoff, trickThresholds, updateAir } from './jump.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
@@ -149,6 +149,7 @@ export class Game {
     if (flying && hasLanded(flying, this.time)) this.land(flying, tilt.x);
     else this.player.jump = flying;
 
+    const prevX = this.player.x;
     const stumbling = this.player.stumbleTimer > 0;
     if (stumbling) this.player.stumbleTimer -= dt;
     if (this.player.jump) {
@@ -203,19 +204,12 @@ export class Game {
     }
 
     // Obstacle collisions → stumble (never instant death). Airborne riders fly over them.
-    if (this.player.invulnTimer <= 0 && !this.player.jump) {
-      for (const ob of this.world.obstacles) {
-        if (Math.abs(ob.y - this.player.y) > 60) continue;
-        if (
-          circlesCollide(
-            this.player.x, this.player.y, CONFIG.playerRadius,
-            ob.x, ob.y, ob.r,
-          )
-        ) {
-          this.crash();
-          break;
-        }
-      }
+    if (
+      this.player.invulnTimer <= 0 &&
+      !this.player.jump &&
+      sweptHitsObstacle({ x: prevX, y: prevY }, this.player, CONFIG.playerRadius, this.world.obstacles)
+    ) {
+      this.crash();
     }
 
     // Compare whole points, as shown in the HUD and recorded on the board.

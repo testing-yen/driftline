@@ -1,4 +1,4 @@
-import type { Ramp } from './types.js';
+import type { Obstacle, Ramp } from './types.js';
 
 /** Pure collision / crossing helpers. No side effects, fully testable. */
 
@@ -15,6 +15,27 @@ export function circlesCollide(
   const dy = ay - by;
   const rr = ar + br;
   return dx * dx + dy * dy < rr * rr;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * Does a circle of radius `r` moving straight from `from` to `to` this frame
+ * touch any obstacle on the way? Testing the whole move rather than where it
+ * ends means a fast rider cannot skip past a tree between two frames.
+ */
+export function sweptHitsObstacle(from: Point, to: Point, r: number, obstacles: readonly Obstacle[]): boolean {
+  const mx = to.x - from.x;
+  const my = to.y - from.y;
+  const len2 = mx * mx + my * my;
+  return obstacles.some((ob) => {
+    // Closest point of the move to the obstacle's centre.
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((ob.x - from.x) * mx + (ob.y - from.y) * my) / len2));
+    return circlesCollide(from.x + t * mx, from.y + t * my, r, ob.x, ob.y, ob.r);
+  });
 }
 
 /** Did the player cross gateY between the previous and current frame? */

@@ -72,8 +72,10 @@ const GROUNDED_WARNING = {
   gap: 12,
 };
 
-/** Peak height of a jump, world px per second of air time, so longer jumps fly higher. */
-const AIR_PEAK_PX_PER_S = 120;
+/** Peak height of a jump, world px per second of air time, so longer jumps fly higher... */
+const AIR_PEAK_PX_PER_S = 180;
+/** ...up to this fraction of the snow above the rider, so a short landscape screen keeps the apex in view. */
+const AIR_PEAK_MAX_FRACTION = 0.45;
 /** How much bigger the rider draws at the top of a jump, as closer to the camera. */
 const AIR_GROW = 0.25;
 
@@ -225,12 +227,16 @@ export class Renderer {
       if (cy > -120 && cy < h + 120) this.drawChaser(w / 2 + chaser.x, cy);
     }
 
-    this.drawPlayer(w / 2 + player.x, playerScreenY, player);
     ctx.restore();
 
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawSideGauge(gauge, rider, time);
+    // A jump near the right edge rises past the gauge; the rider stays in front so the flip shows.
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    ctx.translate(sx, sy);
+    this.drawPlayer(w / 2 + player.x, playerScreenY, player);
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     this.drawHud(score, streak, player, phase, best);
     if (phase === 'playing' && newBestAt !== null) {
       const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
@@ -384,7 +390,8 @@ export class Renderer {
     this.drawAirShadow(x, y, arc);
     const flip = flipProgress(jump, this.frame.time);
     const frame = jump.flip === null || flip === null ? 'straight' : flipFrame(jump.flip.dir, flip);
-    this.drawSprite(PLAYER, this.playerFrames, frame, x, y - AIR_PEAK_PX_PER_S * jump.duration * arc, 1 + AIR_GROW * arc);
+    const peak = Math.min(AIR_PEAK_PX_PER_S * jump.duration, AIR_PEAK_MAX_FRACTION * y);
+    this.drawSprite(PLAYER, this.playerFrames, frame, x, y - peak * arc, 1 + AIR_GROW * arc);
   }
 
   /** The rider's shadow stays on the snow, shrinking and fading as they rise. */

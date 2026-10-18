@@ -9,7 +9,7 @@ const HARD = CONFIG.trickLeanFraction + 0.05;
 const SOFT = CONFIG.trickLeanFraction - 0.05;
 
 /** Runs a jump from takeoff at t=0 to touchdown with a lean and grounded state per frame, then lands. */
-function fly(leanAt: (t: number) => number, groundedAt: (t: number) => boolean = () => false, speed = TYPICAL) {
+function fly(leanAt: (t: number) => number, groundedAt: (t: number) => boolean = () => false, speed: number = TYPICAL) {
   let jump = takeoff(speed, 0, 0);
   let t = 0;
   while (!hasLanded(jump, t)) {
@@ -20,10 +20,10 @@ function fly(leanAt: (t: number) => number, groundedAt: (t: number) => boolean =
 }
 
 describe('airTime', () => {
-  it('is about one second at typical takeoff speed', () => {
+  it('is about 1.6 s at typical takeoff speed', () => {
     expect(airTime(TYPICAL)).toBeCloseTo(CONFIG.airTimeAtTypicalSpeed);
-    expect(CONFIG.airTimeAtTypicalSpeed).toBeGreaterThanOrEqual(0.8);
-    expect(CONFIG.airTimeAtTypicalSpeed).toBeLessThanOrEqual(1.2);
+    expect(CONFIG.airTimeAtTypicalSpeed).toBeGreaterThanOrEqual(1.4);
+    expect(CONFIG.airTimeAtTypicalSpeed).toBeLessThanOrEqual(1.8);
   });
 
   it('grows with takeoff speed', () => {
@@ -31,9 +31,17 @@ describe('airTime', () => {
     expect(airTime(TYPICAL * 0.8)).toBeLessThan(airTime(TYPICAL));
   });
 
-  it('is clamped at both ends', () => {
+  it('is clamped at both ends, to about 1 to 2.2 s', () => {
     expect(airTime(1)).toBe(CONFIG.minAirTimeS);
     expect(airTime(100_000)).toBe(CONFIG.maxAirTimeS);
+    expect(CONFIG.minAirTimeS).toBeCloseTo(1, 1);
+    expect(CONFIG.maxAirTimeS).toBeCloseTo(2.2, 1);
+  });
+
+  it('leaves room for a full-length flip even on the slowest takeoff', () => {
+    const { jump } = fly((t) => (t < 0.1 ? HARD : 0), () => false, 1);
+    expect(jump.flip).not.toBeNull();
+    expect(jump.flip!.endsAt - jump.flip!.startedAt).toBeCloseTo(CONFIG.flipDurationS);
   });
 });
 
@@ -148,7 +156,7 @@ describe('landing', () => {
   });
 
   it('voids the trick when the board was grounded at any point in the air', () => {
-    const groundedAfterFlip = (t: number) => t > 0.8 && t < 0.85;
+    const groundedAfterFlip = (t: number) => t > 1.2 && t < 1.25;
     expect(fly(flipEarly, groundedAfterFlip).outcome).toBe('clean');
     const groundedBeforeFlip = (t: number) => t < 0.05;
     const flipLater = (t: number) => (t > 0.1 && t < 0.2 ? HARD : 0);

@@ -10,7 +10,7 @@ for points, dodge pines and rocks — and keep an eye uphill: after a while, an
 avalanche golem picks up your scent, and it *will* catch you. A run lasts about
 60–120 seconds, which is exactly one good plank.
 
-Snow kickers on the slope launch you into the air for about a second. In the
+Snow kickers on the slope launch you into the air for about 1.6 seconds. In the
 air you fly over trees and rocks at 1.3× your takeoff speed, which buys
 distance from the golem, and you can't steer. Leaning sideways
 `trickLeanFraction` of full lean further than you were at takeoff flips you

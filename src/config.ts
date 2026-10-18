@@ -50,9 +50,9 @@ export const CONFIG = {
   rampLength: 55, // footprint of the ramp uphill of its lip, px
   rampClearance: 110, // trees, rocks and gate lines stay at least this far from a ramp's footprint, px
   typicalTakeoffSpeed: 350, // px/s, a rider leaning well forward...
-  airTimeAtTypicalSpeed: 1.0, // ...is in the air this long, s; air time is proportional to takeoff speed
-  minAirTimeS: 0.6, // even a slow takeoff leaves room to start a flip
-  maxAirTimeS: 1.4, // hang time cap, s
+  airTimeAtTypicalSpeed: 1.6, // ...is in the air this long, s; air time is proportional to takeoff speed
+  minAirTimeS: 1.0, // even a slow takeoff leaves room for a full flip
+  maxAirTimeS: 2.2, // hang time cap, s
   airSpeedBoost: 1.3, // speed in the air is takeoff speed × this (no snow friction), so jumps help outrun the golem
   jumpScore: 50, // points per jump
   trickScore: 100, // points for a flip completed before landing
@@ -60,7 +60,7 @@ export const CONFIG = {
   // they must stay well inside the grounded threshold, so re-tune them with fullLeanFraction / groundedFraction.
   trickLeanFraction: 0.35, // lean this much further sideways than at takeoff, in the air, to start a flip (depends on the board)
   landingCrashLean: 0.6, // lateral lean at touchdown at or past this crashes the landing
-  flipDurationS: 0.5, // one full flip when there is air time for it; a later flip speeds up to finish by touchdown
+  flipDurationS: 0.8, // one full flip when there is air time for it; a later flip speeds up to finish by touchdown
   minFlipS: 0.15, // a flip needs at least this much air left to start, so a lean right at touchdown is not a trick
   landingCarryS: 1.0, // after a clean landing, speed eases from air speed to the lean target over about this long, s
 

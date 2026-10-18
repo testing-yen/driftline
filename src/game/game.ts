@@ -11,6 +11,10 @@ import type { AirLean, GamePhase, Jump, JumpCallout, PlayerState } from './types
 import { World } from './world.js';
 
 const STEP = 1 / 60;
+/** World px of course generated ahead of the rider: past the bottom of the view on a tall phone. */
+const GENERATE_AHEAD = 3000;
+/** World px of course kept behind the rider: past the top of the view, so nothing vanishes on screen. */
+const KEEP_BEHIND = 1000;
 
 /**
  * Owns the fixed-timestep loop, player physics, collisions, scoring and the
@@ -176,8 +180,8 @@ export class Game {
     if (this.player.invulnTimer > 0) this.player.invulnTimer -= dt;
 
     // Keep course generated ahead; prune behind.
-    this.world.ensure(this.player.y - 400, this.player.y + 1600);
-    this.world.prune(this.player.y - 400);
+    this.world.ensure(this.player.y - 400, this.player.y + GENERATE_AHEAD);
+    this.world.prune(this.player.y - KEEP_BEHIND);
 
     if (!this.player.jump && this.world.ramps.some((r) => rampHit(prevY, this.player.y, this.player.x, r))) {
       this.player.jump = takeoff(this.player.speed, this.time, tilt.x);

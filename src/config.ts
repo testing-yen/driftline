@@ -36,6 +36,9 @@ export function makeConfig(downhillScale: number) {
     /** Playfield */
     worldHalfWidth: 520, // half-width of the skiable slope, px
     viewMargin: 40, // snow kept visible beyond each slope edge; the view zooms out to fit slope + margin on narrow screens
+    // The rider's height on screen, from the top. High up, so most of the screen is the slope ahead:
+    // the faster the snow scrolls, the more look-ahead a rider needs to react.
+    riderScreenYFraction: 1 / 3,
 
     /** Tilt input */
     // Both fractions are of the board's reach (the lean at which its edge touches the floor,

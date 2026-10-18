@@ -6,9 +6,10 @@
  *   y: -1 (full brake / lean back) .. +1 (full tuck / lean forward)
  *
  * Implementations: KeyboardTiltInput (desktop dev/testing) and
- * DeviceMotionTiltInput (real phone IMU on the board).
+ * DeviceMotionTiltInput (real phone IMU, on the board or in the hand).
  */
 import type { BoardReach } from './boardReach.js';
+import type { LeanProfile } from './playMode.js';
 import type { TiltRange } from './tiltMath.js';
 
 export interface TiltSample {
@@ -20,7 +21,7 @@ export interface TiltSample {
   sideGrounded: boolean;
 }
 
-/** Lean in degrees from neutral: x + right, y + forward. */
+/** Lean in degrees from neutral: x + right, y + forward (faster, in the play mode's sense). */
 export interface LeanDegrees {
   x: number;
   y: number;
@@ -32,8 +33,10 @@ export interface BoardAngles {
   readonly now: LeanDegrees;
   /** Furthest lean per direction since the last reset. */
   readonly range: TiltRange;
-  /** Normalizes every sample; replace it after measuring the board. */
+  /** Normalizes every sample in board mode; replace it after measuring the board. */
   reach: BoardReach;
+  /** The play mode's mapping from lean to sample; replace it when the mode changes. */
+  profile: LeanProfile;
 }
 
 export interface TiltInput {

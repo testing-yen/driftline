@@ -5,6 +5,7 @@ import { SessionBoard } from './game/session.js';
 import { loadReach } from './input/boardReach.js';
 import { DeviceMotionTiltInput } from './input/DeviceMotionTiltInput.js';
 import { KeyboardTiltInput } from './input/KeyboardTiltInput.js';
+import { LEAN_PROFILES, loadPlayMode } from './input/playMode.js';
 import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
@@ -154,7 +155,7 @@ function boot(): void {
 
   let input: TiltInput;
   if (isTouchDevice) {
-    input = new DeviceMotionTiltInput(loadReach());
+    input = new DeviceMotionTiltInput(loadReach(), LEAN_PROFILES[loadPlayMode()]);
   } else {
     const kb = new KeyboardTiltInput();
     kb.attach(canvas);

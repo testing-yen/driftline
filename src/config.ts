@@ -26,6 +26,7 @@ export const CONFIG = {
   groundedFraction: 0.9, // past this the edge is effectively on the floor: "Lift the edge!" and no lean bonus
   groundedGraceS: 0.5, // a wobbling board brushes the floor; only an edge held down this long counts as resting on it
   restingSpeedFactor: 0.5, // × flatSpeed once resting on the edge, so leaning on the floor instead of planking loses the run
+  handheldFullLeanDeg: 20, // handheld mode has no board reach: full steer/speed this far from the neutral grip, every direction
   deadZoneDeg: 2, // ignore tilt smaller than this (1-3 deg recommended)
   lowPassAlpha: 0.22, // smoothing for IMU noise (~10 Hz feel at 60 fps)
   calibSamples: 60, // samples (~1s) used for per-session neutral calibration

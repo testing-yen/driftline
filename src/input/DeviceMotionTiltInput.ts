@@ -1,5 +1,6 @@
 import { CONFIG } from '../config.js';
-import { leanFromAngles, type BoardReach } from './boardReach.js';
+import type { BoardReach } from './boardReach.js';
+import type { LeanProfile } from './playMode.js';
 import type { LeanDegrees, TiltInput, TiltSample } from './TiltInput.js';
 import { LowPassFilter, NeutralCalibrator, TiltRange, anglesIn } from './tiltMath.js';
 
@@ -10,10 +11,11 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
 /**
  * Real phone input via the DeviceMotion API.
  *
- * Assumes the phone is mounted in PORTRAIT, screen facing up toward the
- * player, top edge pointing forward:
- *   - roll  (rotation around the long axis) -> steer left/right
- *   - pitch (rotation around the short axis) -> tuck / brake
+ * Assumes the phone is in PORTRAIT, screen toward the player: mounted on a
+ * board with the top edge pointing forward, or held in the hand.
+ *   - roll  (tipping the left or right edge down) -> steer left/right
+ *   - pitch (tipping the top edge) -> tuck / brake; the play mode's
+ *     LeanProfile says which way is forward
  *
  * Derived from accelerationIncludingGravity, measured in the frame of the
  * gravity vector averaged at neutral (see neutralFrame), so the lean is from
@@ -27,7 +29,7 @@ type DeviceMotionEventWithPermission = typeof DeviceMotionEvent & {
 export class DeviceMotionTiltInput implements TiltInput {
   readonly name = 'device-motion';
   readonly needsUserGesture = true;
-  readonly angles: { now: LeanDegrees; range: TiltRange; reach: BoardReach };
+  readonly angles: { now: LeanDegrees; range: TiltRange; reach: BoardReach; profile: LeanProfile };
 
   private tilt: TiltSample = { x: 0, y: 0, grounded: false, sideGrounded: false };
   private filterX = new LowPassFilter(CONFIG.lowPassAlpha);
@@ -36,8 +38,8 @@ export class DeviceMotionTiltInput implements TiltInput {
   private listening = false;
   private lastError: string | null = null;
 
-  constructor(reach: BoardReach) {
-    this.angles = { now: { x: 0, y: 0 }, range: new TiltRange(), reach };
+  constructor(reach: BoardReach, profile: LeanProfile) {
+    this.angles = { now: { x: 0, y: 0 }, range: new TiltRange(), reach, profile };
   }
 
   /** Most recent failure reason, for display in the UI. */
@@ -97,11 +99,12 @@ export class DeviceMotionTiltInput implements TiltInput {
       this.calibrator.addSample(gravity);
       const { roll, pitch } = anglesIn(this.calibrator.frame, gravity);
 
+      const { reach, profile } = this.angles;
       const xDeg = this.filterX.push(roll);
-      const yDeg = this.filterY.push(pitch);
+      const yDeg = this.filterY.push(profile.forwardSign * pitch);
       this.angles.now = { x: xDeg, y: yDeg };
       if (this.calibrator.isCalibrated) this.angles.range.record(xDeg, yDeg);
-      this.tilt = leanFromAngles(xDeg, yDeg, this.angles.reach);
+      this.tilt = profile.toSample(this.angles.now, reach);
     } catch (err) {
       this.lastError = err instanceof Error ? err.message : String(err);
     }

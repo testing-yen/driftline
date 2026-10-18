@@ -34,15 +34,20 @@ export function takeoff(speed: number, time: number, lean: number): Jump {
  * One frame in the air. `lean` is lateral lean in [-1, 1]. Once armed (see
  * Jump.spinArmed), a hard lean starts the jump's one spin unless the board's
  * edge is on the floor; the edge on the floor at any point voids the trick.
+ * A spin always finishes by touchdown, speeding up when started late, so the
+ * only timing rule is that it needs minSpinS of air left to start.
  */
 export function updateAir(jump: Jump, lean: number, grounded: boolean, time: number): Jump {
   const hard = Math.abs(lean) >= CONFIG.trickLeanFraction;
-  const startsSpin = jump.spin === null && jump.spinArmed && !grounded && hard;
+  const airLeft = jump.startedAt + jump.duration - time;
+  const startsSpin = jump.spin === null && jump.spinArmed && !grounded && hard && airLeft >= CONFIG.minSpinS;
   return {
     ...jump,
     touchedFloor: jump.touchedFloor || grounded,
     spinArmed: jump.spinArmed || !hard,
-    spin: startsSpin ? { dir: lean < 0 ? 'left' : 'right', startedAt: time } : jump.spin,
+    spin: startsSpin
+      ? { dir: lean < 0 ? 'left' : 'right', startedAt: time, endsAt: time + Math.min(CONFIG.spinDurationS, airLeft) }
+      : jump.spin,
   };
 }
 
@@ -53,15 +58,13 @@ export function hasLanded(jump: Jump, time: number): boolean {
 /** 0..1 through the spin, or null when the jump has none. */
 export function spinProgress(jump: Jump, time: number): number | null {
   if (jump.spin === null) return null;
-  return Math.min(1, (time - jump.spin.startedAt) / CONFIG.spinDurationS);
+  return Math.min(1, (time - jump.spin.startedAt) / (jump.spin.endsAt - jump.spin.startedAt));
 }
 
-/** How touchdown goes with lateral lean `lean`: an unfinished spin or a hard lean crashes. */
-export function landing(jump: Jump, lean: number, time: number): Landing {
-  const spin = spinProgress(jump, time);
-  if (spin !== null && spin < 1) return 'crash';
+/** How touchdown goes with lateral lean `lean`: a hard lean crashes; a spin scores unless the edge touched the floor. */
+export function landing(jump: Jump, lean: number): Landing {
   if (Math.abs(lean) >= CONFIG.landingCrashLean) return 'crash';
-  return spin !== null && !jump.touchedFloor ? 'trick' : 'clean';
+  return jump.spin !== null && !jump.touchedFloor ? 'trick' : 'clean';
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import { airTime, easeSpeed, hasLanded, landing, takeoff, updateAir } from '../src/game/jump.js';
+import { airTime, easeSpeed, hasLanded, landing, spinProgress, takeoff, updateAir } from '../src/game/jump.js';
 import type { Jump } from '../src/game/types.js';
 
 const DT = 1 / 60;
@@ -16,7 +16,7 @@ function fly(leanAt: (t: number) => number, groundedAt: (t: number) => boolean =
     t += DT;
     jump = updateAir(jump, leanAt(t), groundedAt(t), t);
   }
-  return { jump, outcome: landing(jump, leanAt(t), t) };
+  return { jump, outcome: landing(jump, leanAt(t)) };
 }
 
 describe('airTime', () => {
@@ -62,14 +62,14 @@ describe('updateAir', () => {
   });
 
   it('starts a spin in the lean direction past trickLeanFraction', () => {
-    expect(updateAir(base(), HARD, false, 0.1).spin).toEqual({ dir: 'right', startedAt: 0.1 });
-    expect(updateAir(base(), -HARD, false, 0.1).spin).toEqual({ dir: 'left', startedAt: 0.1 });
+    expect(updateAir(base(), HARD, false, 0.1).spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(updateAir(base(), -HARD, false, 0.1).spin).toMatchObject({ dir: 'left', startedAt: 0.1 });
   });
 
   it('starts only one spin per jump', () => {
     const first = updateAir(base(), HARD, false, 0.1);
     const again = updateAir(updateAir(first, 0, false, 0.2), -HARD, false, 0.7);
-    expect(again.spin).toEqual({ dir: 'right', startedAt: 0.1 });
+    expect(again.spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
   });
 
   it('does not spin from a lean already held at takeoff (steering onto the ramp)', () => {
@@ -83,7 +83,7 @@ describe('updateAir', () => {
     jump = updateAir(jump, -HARD, false, 0.05);
     jump = updateAir(jump, 0, false, 0.1);
     jump = updateAir(jump, -HARD, false, 0.15);
-    expect(jump.spin).toEqual({ dir: 'left', startedAt: 0.15 });
+    expect(jump.spin).toMatchObject({ dir: 'left', startedAt: 0.15 });
   });
 
   it('starts no spin while the board is grounded', () => {
@@ -108,20 +108,31 @@ describe('landing', () => {
     expect(fly(spinEarly).outcome).toBe('trick');
   });
 
-  it('crashes when the spin is still going at touchdown', () => {
+  it('speeds up a late spin so it still finishes by touchdown and scores', () => {
     const duration = airTime(TYPICAL);
-    const late = (t: number) => (t > duration - CONFIG.spinDurationS / 2 && t < duration - 0.1 ? -HARD : 0);
-    expect(fly(late).outcome).toBe('crash');
+    const startAt = duration - CONFIG.spinDurationS / 2;
+    const late = (t: number) => (t > startAt && t < startAt + 0.05 ? -HARD : 0);
+    const { jump, outcome } = fly(late);
+    expect(jump.spin?.dir).toBe('left');
+    expect(spinProgress(jump, jump.startedAt + jump.duration)).toBe(1);
+    expect(outcome).toBe('trick');
+  });
+
+  it('starts no spin with less than minSpinS of air left', () => {
+    const duration = airTime(TYPICAL);
+    const tooLate = (t: number) => (t > duration - CONFIG.minSpinS + 0.02 ? CONFIG.landingCrashLean * 0.9 : 0);
+    const { jump, outcome } = fly(tooLate);
+    expect(jump.spin).toBeNull();
+    expect(outcome).toBe('clean');
   });
 
   it('crashes on a hard lateral lean at touchdown, either way, even after a finished spin', () => {
     const noSpin = takeoff(TYPICAL, 0, 0);
-    const t = noSpin.duration;
-    expect(landing(noSpin, CONFIG.landingCrashLean, t)).toBe('crash');
-    expect(landing(noSpin, -CONFIG.landingCrashLean, t)).toBe('crash');
-    expect(landing(noSpin, CONFIG.landingCrashLean * 0.9, t)).toBe('clean');
+    expect(landing(noSpin, CONFIG.landingCrashLean)).toBe('crash');
+    expect(landing(noSpin, -CONFIG.landingCrashLean)).toBe('crash');
+    expect(landing(noSpin, CONFIG.landingCrashLean * 0.9)).toBe('clean');
     const spun = fly(spinEarly).jump;
-    expect(landing(spun, CONFIG.landingCrashLean, t)).toBe('crash');
+    expect(landing(spun, CONFIG.landingCrashLean)).toBe('crash');
   });
 
   it('voids the trick when the board was grounded at any point in the air', () => {

@@ -47,7 +47,7 @@ export interface Jump {
   /** Locked speed for the whole jump, px/s. */
   speed: number;
   /** The one spin this jump may have, from when it started. */
-  spin: { dir: SpinDir; startedAt: number } | null;
+  spin: { dir: SpinDir; startedAt: number; endsAt: number } | null;
   /** The board's edge hit the floor at some point in the air, which voids the trick. */
   touchedFloor: boolean;
   /**

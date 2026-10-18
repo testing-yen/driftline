@@ -233,7 +233,7 @@ export class Game {
 
   private land(jump: Jump, lean: number): void {
     this.player.jump = null;
-    const outcome = landing(jump, lean, this.time);
+    const outcome = landing(jump, lean);
     if (outcome === 'crash') {
       this.crash();
       this.callout = { kind: 'crash', at: this.time };

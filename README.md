@@ -167,7 +167,7 @@ and service worker make it installable and work offline after the first load).
 
 All gameplay tuning lives in **`src/config.ts`** — no magic numbers elsewhere.
 
-**Downhill scale.** `DEFAULT_DOWNHILL_SCALE` (K, 2.5) sets how fast the snow
+**Downhill scale.** `DEFAULT_DOWNHILL_SCALE` (K, 3) sets how fast the snow
 scrolls past. Every downhill speed and distance in `makeConfig` is a base value
 × K; lateral sizes and all times are not. So gates, trees and ramps come by at
 the same rate per second, steering between them is just as hard, jumps last as

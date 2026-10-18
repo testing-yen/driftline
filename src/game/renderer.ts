@@ -62,6 +62,8 @@ const OVER_MAX_GLOW_FROM = 0.8;
  * screen; the streak sits level with BEST under the pause button.
  */
 const HUD_BLOCK_BOTTOM = 118;
+/** Seconds to the golem's catch, at current speeds, under which its off-screen marker turns urgent. */
+const GOLEM_URGENT_S = 3;
 /** Smallest gap kept between HUD pieces, and between them and the rider. */
 const HUD_GAP = 8;
 /** The speed gauge runs across the top row, from right of the score and distance... */
@@ -252,6 +254,7 @@ export class Renderer {
     ctx.translate(sx, sy);
     this.drawPlayer(w / 2 + player.x, playerScreenY, player);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (phase === 'playing' && chaser.active) this.drawGolemWarning(chaser, player, camY, time);
     this.drawHud(score, streak, player, phase, best);
     if (phase === 'playing' && callout !== null) this.drawCallout(callout, rider, time);
     if (phase === 'playing' && airLean !== null) this.drawAirLean(airLean, rider);
@@ -626,6 +629,51 @@ export class Renderer {
   }
 
   /** A tiny golem face so the chaser line reads as "the beast", not another limit. */
+  /**
+   * While the golem is above the view (or hidden behind the HUD), a marker under
+   * the HUD at its x shows how far back it is. With the rider a third from the
+   * top it is otherwise on screen for only about a second before the catch.
+   * It pulses red once the catch is under GOLEM_URGENT_S away at current speeds.
+   */
+  private drawGolemWarning(chaser: Chaser, player: PlayerState, camY: number, time: number): void {
+    const golemY = (chaser.y - camY) * this.scale;
+    const top = HUD_BLOCK_BOTTOM + HUD_GAP;
+    // Once its centre clears the HUD the golem itself is in view; the marker would only cover it.
+    if (golemY > top) return;
+    const { ctx } = this;
+    const x = Math.max(this.insetLeft + 44, Math.min(this.screenW - this.insetRight - 44, (this.w / 2 + chaser.x) * this.scale));
+    const y = top + 14;
+    const gap = Math.max(0, player.y - chaser.y);
+    const closing = chaser.speed - player.speed;
+    const urgent = closing > 0 && gap / closing < GOLEM_URGENT_S;
+    ctx.save();
+    if (urgent) {
+      ctx.beginPath();
+      ctx.arc(x, y, 14 + 4 * pulse(time * 2), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,59,59,${0.25 + 0.35 * pulse(time * 2)})`;
+      ctx.fill();
+    }
+    this.drawBeastMarker(x, y);
+    ctx.beginPath();
+    ctx.moveTo(x - 7, y + 14);
+    ctx.lineTo(x + 7, y + 14);
+    ctx.lineTo(x, y + 22);
+    ctx.closePath();
+    ctx.fillStyle = GAUGE_COLORS.chaser;
+    ctx.fill();
+    ctx.font = '800 20px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    const label = `${Math.ceil(gap / CONFIG.pxPerMeter)} m`;
+    ctx.strokeText(label, x, y + 25);
+    ctx.fillStyle = urgent ? GAUGE_COLORS.chaser : GAUGE_COLORS.outline;
+    ctx.fillText(label, x, y + 25);
+    ctx.restore();
+  }
+
   private drawBeastMarker(x: number, y: number): void {
     const { ctx } = this;
     ctx.beginPath();

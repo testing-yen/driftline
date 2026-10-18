@@ -46,7 +46,7 @@ function showMenu(input: TiltInput): void {
   title.textContent = 'DRIFTLINE';
   const sub = document.createElement('p');
   sub.textContent =
-    'Tilt to carve downhill. Thread the gates, dodge pines and rocks — and don’t let the shadow beast catch you.';
+    'Tilt to carve downhill. Thread the gates, dodge pines and rocks — and don’t let the avalanche golem catch you.';
 
   const controls = document.createElement('p');
   controls.textContent = input.needsUserGesture
@@ -164,4 +164,8 @@ function boot(): void {
   showMenu(input);
 }
 
-boot();
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('sprites')) {
+  void import('./dev/spriteSheet.js').then(({ showSpriteSheet }) => showSpriteSheet(canvas));
+} else {
+  boot();
+}

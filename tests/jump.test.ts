@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config.js';
-import { airTime, easeSpeed, hasLanded, landing, spinProgress, takeoff, updateAir } from '../src/game/jump.js';
+import { airTime, easeSpeed, hasLanded, landing, flipProgress, takeoff, updateAir } from '../src/game/jump.js';
 import type { Jump } from '../src/game/types.js';
 
 const DT = 1 / 60;
@@ -56,50 +56,50 @@ describe('takeoff', () => {
 describe('updateAir', () => {
   const base = (): Jump => takeoff(TYPICAL, 0, 0);
 
-  it('starts no spin below trickLeanFraction', () => {
-    expect(updateAir(base(), SOFT, false, 0.1).spin).toBeNull();
-    expect(updateAir(base(), -SOFT, false, 0.1).spin).toBeNull();
+  it('starts no flip below trickLeanFraction', () => {
+    expect(updateAir(base(), SOFT, false, 0.1).flip).toBeNull();
+    expect(updateAir(base(), -SOFT, false, 0.1).flip).toBeNull();
   });
 
-  it('starts a spin in the lean direction past trickLeanFraction', () => {
-    expect(updateAir(base(), HARD, false, 0.1).spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
-    expect(updateAir(base(), -HARD, false, 0.1).spin).toMatchObject({ dir: 'left', startedAt: 0.1 });
+  it('starts a flip in the lean direction past trickLeanFraction', () => {
+    expect(updateAir(base(), HARD, false, 0.1).flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(updateAir(base(), -HARD, false, 0.1).flip).toMatchObject({ dir: 'left', startedAt: 0.1 });
   });
 
-  it('starts only one spin per jump', () => {
+  it('starts only one flip per jump', () => {
     const first = updateAir(base(), HARD, false, 0.1);
     const again = updateAir(updateAir(first, 0, false, 0.2), -HARD, false, 0.7);
-    expect(again.spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(again.flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
   });
 
-  it('does not spin from a lean already held at takeoff (steering onto the ramp)', () => {
+  it('does not flip from a lean already held at takeoff (steering onto the ramp)', () => {
     let jump = takeoff(TYPICAL, 0, HARD);
     for (let t = 0.05; t < 0.5; t += 0.05) jump = updateAir(jump, HARD, false, t);
-    expect(jump.spin).toBeNull();
+    expect(jump.flip).toBeNull();
   });
 
-  it('spins by leaning further than a lean held at takeoff, with no need to level out first', () => {
+  it('flips by leaning further than a lean held at takeoff, with no need to level out first', () => {
     const held = 0.3;
     let jump = takeoff(TYPICAL, 0, held);
     jump = updateAir(jump, held + CONFIG.trickLeanFraction - 0.05, false, 0.05);
-    expect(jump.spin).toBeNull();
+    expect(jump.flip).toBeNull();
     jump = updateAir(jump, held + CONFIG.trickLeanFraction + 0.05, false, 0.1);
-    expect(jump.spin).toMatchObject({ dir: 'right', startedAt: 0.1 });
+    expect(jump.flip).toMatchObject({ dir: 'right', startedAt: 0.1 });
   });
 
-  it('never spins from easing a held lean back toward level', () => {
+  it('never flips from easing a held lean back toward level', () => {
     let jump = takeoff(TYPICAL, 0, 0.6);
     for (let t = 0.05, lean = 0.6; t < 0.6; t += 0.05, lean -= 0.06) jump = updateAir(jump, Math.max(0, lean), false, t);
-    expect(jump.spin).toBeNull();
+    expect(jump.flip).toBeNull();
   });
 
-  it('can spin the other way from a lean held at takeoff', () => {
+  it('can flip the other way from a lean held at takeoff', () => {
     const jump = updateAir(takeoff(TYPICAL, 0, 0.5), -HARD, false, 0.1);
-    expect(jump.spin).toMatchObject({ dir: 'left', startedAt: 0.1 });
+    expect(jump.flip).toMatchObject({ dir: 'left', startedAt: 0.1 });
   });
 
-  it('starts no spin while a side edge is grounded', () => {
-    expect(updateAir(base(), HARD, true, 0.1).spin).toBeNull();
+  it('starts no flip while a side edge is grounded', () => {
+    expect(updateAir(base(), HARD, true, 0.1).flip).toBeNull();
   });
 
   it('remembers that a side edge touched the floor', () => {
@@ -110,49 +110,49 @@ describe('updateAir', () => {
 });
 
 describe('landing', () => {
-  const spinEarly = (t: number) => (t < 0.1 ? HARD : 0);
+  const flipEarly = (t: number) => (t < 0.1 ? HARD : 0);
 
-  it('is clean with no spin and a level board', () => {
+  it('is clean with no flip and a level board', () => {
     expect(fly(() => 0).outcome).toBe('clean');
   });
 
-  it('is a trick when the spin completes before touchdown', () => {
-    expect(fly(spinEarly).outcome).toBe('trick');
+  it('is a trick when the flip completes before touchdown', () => {
+    expect(fly(flipEarly).outcome).toBe('trick');
   });
 
-  it('speeds up a late spin so it still finishes by touchdown and scores', () => {
+  it('speeds up a late flip so it still finishes by touchdown and scores', () => {
     const duration = airTime(TYPICAL);
-    const startAt = duration - CONFIG.spinDurationS / 2;
+    const startAt = duration - CONFIG.flipDurationS / 2;
     const late = (t: number) => (t > startAt && t < startAt + 0.05 ? -HARD : 0);
     const { jump, outcome } = fly(late);
-    expect(jump.spin?.dir).toBe('left');
-    expect(spinProgress(jump, jump.startedAt + jump.duration)).toBe(1);
+    expect(jump.flip?.dir).toBe('left');
+    expect(flipProgress(jump, jump.startedAt + jump.duration)).toBe(1);
     expect(outcome).toBe('trick');
   });
 
-  it('starts no spin with less than minSpinS of air left', () => {
+  it('starts no flip with less than minFlipS of air left', () => {
     const duration = airTime(TYPICAL);
-    const tooLate = (t: number) => (t > duration - CONFIG.minSpinS + 0.02 ? CONFIG.landingCrashLean * 0.9 : 0);
+    const tooLate = (t: number) => (t > duration - CONFIG.minFlipS + 0.02 ? CONFIG.landingCrashLean * 0.9 : 0);
     const { jump, outcome } = fly(tooLate);
-    expect(jump.spin).toBeNull();
+    expect(jump.flip).toBeNull();
     expect(outcome).toBe('clean');
   });
 
-  it('crashes on a hard lateral lean at touchdown, either way, even after a finished spin', () => {
-    const noSpin = takeoff(TYPICAL, 0, 0);
-    expect(landing(noSpin, CONFIG.landingCrashLean)).toBe('crash');
-    expect(landing(noSpin, -CONFIG.landingCrashLean)).toBe('crash');
-    expect(landing(noSpin, CONFIG.landingCrashLean * 0.9)).toBe('clean');
-    const spun = fly(spinEarly).jump;
-    expect(landing(spun, CONFIG.landingCrashLean)).toBe('crash');
+  it('crashes on a hard lateral lean at touchdown, either way, even after a finished flip', () => {
+    const noFlip = takeoff(TYPICAL, 0, 0);
+    expect(landing(noFlip, CONFIG.landingCrashLean)).toBe('crash');
+    expect(landing(noFlip, -CONFIG.landingCrashLean)).toBe('crash');
+    expect(landing(noFlip, CONFIG.landingCrashLean * 0.9)).toBe('clean');
+    const flipped = fly(flipEarly).jump;
+    expect(landing(flipped, CONFIG.landingCrashLean)).toBe('crash');
   });
 
   it('voids the trick when the board was grounded at any point in the air', () => {
-    const groundedAfterSpin = (t: number) => t > 0.8 && t < 0.85;
-    expect(fly(spinEarly, groundedAfterSpin).outcome).toBe('clean');
-    const groundedBeforeSpin = (t: number) => t < 0.05;
-    const spinLater = (t: number) => (t > 0.1 && t < 0.2 ? HARD : 0);
-    expect(fly(spinLater, groundedBeforeSpin).outcome).toBe('clean');
+    const groundedAfterFlip = (t: number) => t > 0.8 && t < 0.85;
+    expect(fly(flipEarly, groundedAfterFlip).outcome).toBe('clean');
+    const groundedBeforeFlip = (t: number) => t < 0.05;
+    const flipLater = (t: number) => (t > 0.1 && t < 0.2 ? HARD : 0);
+    expect(fly(flipLater, groundedBeforeFlip).outcome).toBe('clean');
   });
 });
 

@@ -9,7 +9,7 @@
  * uphill, facing the rider.
  */
 
-import type { SpinDir } from './types.js';
+import type { FlipDir } from './types.js';
 
 export const TRANSPARENT = '.';
 
@@ -22,7 +22,7 @@ export interface SpriteSheet<F extends string> {
   readonly frames: Readonly<Record<F, readonly string[]>>;
 }
 
-/** 'front' only shows halfway through a spin, facing back uphill. */
+/** 'front' only shows halfway through a trick, facing back uphill. */
 export type PlayerFrame = 'straight' | 'left' | 'right' | 'front' | 'crashed';
 export type BeastFrame = 'glideA' | 'glideB' | 'lunge';
 export type RampFrame = 'kicker';
@@ -383,15 +383,15 @@ export const RAMP: SpriteSheet<RampFrame> = {
   },
 };
 
-/** A spin seen from behind: side-on one way, facing uphill, side-on the other way, back again. */
-const SPIN_FRAMES: Readonly<Record<SpinDir, readonly PlayerFrame[]>> = {
+/** The trick seen from behind, for now a turn: side-on one way, facing uphill, side-on the other way, back again. */
+const FLIP_FRAMES: Readonly<Record<FlipDir, readonly PlayerFrame[]>> = {
   right: ['straight', 'right', 'front', 'left'],
   left: ['straight', 'left', 'front', 'right'],
 };
 
-/** Rider frame `progress` (0..1) of the way through a spin; a finished spin rides straight. */
-export function spinFrame(dir: SpinDir, progress: number): PlayerFrame {
-  const frames = SPIN_FRAMES[dir];
+/** Rider frame `progress` (0..1) of the way through a flip; a finished flip rides straight. */
+export function flipFrame(dir: FlipDir, progress: number): PlayerFrame {
+  const frames = FLIP_FRAMES[dir];
   if (progress >= 1) return 'straight';
   return frames[Math.floor(Math.max(0, progress) * frames.length)];
 }

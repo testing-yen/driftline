@@ -112,7 +112,7 @@ export class Game {
       chaserSpeed: this.chaser.active ? this.chaser.speed : null,
     });
     const { jump } = this.player;
-    const airLean: AirLean | null = jump && { ...this.lateral, ...trickThresholds(jump), spinning: jump.spin !== null };
+    const airLean: AirLean | null = jump && { ...this.lateral, ...trickThresholds(jump), flipping: jump.flip !== null };
     this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout, airLean);
   }
 
@@ -145,7 +145,7 @@ export class Game {
 
     this.lateral = { lean: tilt.x, sideGrounded: tilt.sideGrounded };
     const flying = this.player.jump && updateAir(this.player.jump, tilt.x, tilt.sideGrounded, this.time);
-    if (flying && flying.spin && !this.player.jump?.spin) this.callout = { kind: 'spin', at: this.time };
+    if (flying && flying.flip && !this.player.jump?.flip) this.callout = { kind: 'flip', at: this.time };
     if (flying && hasLanded(flying, this.time)) this.land(flying, tilt.x);
     else this.player.jump = flying;
 

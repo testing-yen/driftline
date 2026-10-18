@@ -24,14 +24,14 @@ export function takeoff(speed: number, time: number, lean: number): Jump {
     startedAt: time,
     duration: airTime(base),
     speed: base * CONFIG.airSpeedBoost,
-    spin: null,
+    flip: null,
     touchedFloor: false,
     takeoffLean: lean,
   };
 }
 
 /**
- * Lateral lean that starts a spin each way: trickLeanFraction further than
+ * Lateral lean that starts a flip each way: trickLeanFraction further than
  * the takeoff lean in that direction (or than level, if the rider took off
  * leaning the other way). Easing back toward level never reaches either.
  */
@@ -44,23 +44,23 @@ export function trickThresholds(jump: Jump): { left: number; right: number } {
 
 /**
  * One frame in the air. `lean` is lateral lean in [-1, 1]. Leaning past a
- * trick threshold starts the jump's one spin unless a side edge is on the
- * floor; a side edge on the floor at any point voids the trick. A spin always
+ * trick threshold starts the jump's one flip unless a side edge is on the
+ * floor; a side edge on the floor at any point voids the trick. A flip always
  * finishes by touchdown, speeding up when started late, so the only timing
- * rule is that it needs minSpinS of air left to start.
+ * rule is that it needs minFlipS of air left to start.
  */
 export function updateAir(jump: Jump, lean: number, sideGrounded: boolean, time: number): Jump {
   const { left, right } = trickThresholds(jump);
   const dir = lean >= right ? 'right' : lean <= left ? 'left' : null;
   const airLeft = jump.startedAt + jump.duration - time;
-  const startsSpin = jump.spin === null && dir !== null && !sideGrounded && airLeft >= CONFIG.minSpinS;
+  const startsFlip = jump.flip === null && dir !== null && !sideGrounded && airLeft >= CONFIG.minFlipS;
   return {
     ...jump,
     touchedFloor: jump.touchedFloor || sideGrounded,
-    spin:
-      startsSpin && dir !== null
-        ? { dir, startedAt: time, endsAt: time + Math.min(CONFIG.spinDurationS, airLeft) }
-        : jump.spin,
+    flip:
+      startsFlip && dir !== null
+        ? { dir, startedAt: time, endsAt: time + Math.min(CONFIG.flipDurationS, airLeft) }
+        : jump.flip,
   };
 }
 
@@ -68,16 +68,16 @@ export function hasLanded(jump: Jump, time: number): boolean {
   return time >= jump.startedAt + jump.duration;
 }
 
-/** 0..1 through the spin, or null when the jump has none. */
-export function spinProgress(jump: Jump, time: number): number | null {
-  if (jump.spin === null) return null;
-  return Math.min(1, (time - jump.spin.startedAt) / (jump.spin.endsAt - jump.spin.startedAt));
+/** 0..1 through the flip, or null when the jump has none. */
+export function flipProgress(jump: Jump, time: number): number | null {
+  if (jump.flip === null) return null;
+  return Math.min(1, (time - jump.flip.startedAt) / (jump.flip.endsAt - jump.flip.startedAt));
 }
 
-/** How touchdown goes with lateral lean `lean`: a hard lean crashes; a spin scores unless the edge touched the floor. */
+/** How touchdown goes with lateral lean `lean`: a hard lean crashes; a flip scores unless the edge touched the floor. */
 export function landing(jump: Jump, lean: number): Landing {
   if (Math.abs(lean) >= CONFIG.landingCrashLean) return 'crash';
-  return jump.spin !== null && !jump.touchedFloor ? 'trick' : 'clean';
+  return jump.flip !== null && !jump.touchedFloor ? 'trick' : 'clean';
 }
 
 /**

@@ -37,7 +37,7 @@ export interface Ramp {
   halfWidth: number;
 }
 
-export type SpinDir = 'left' | 'right';
+export type FlipDir = 'left' | 'right';
 
 /** Times are game time in seconds. */
 export interface Jump {
@@ -46,31 +46,31 @@ export interface Jump {
   duration: number;
   /** Locked speed for the whole jump, px/s. */
   speed: number;
-  /** The one spin this jump may have, from when it started. */
-  spin: { dir: SpinDir; startedAt: number; endsAt: number } | null;
+  /** The one flip this jump may have, from when it started. */
+  flip: { dir: FlipDir; startedAt: number; endsAt: number } | null;
   /** A side edge hit the floor at some point in the air, which voids the trick. */
   touchedFloor: boolean;
   /**
-   * Lateral lean at takeoff. A spin needs a lean past it (see trickThresholds),
-   * so a lean held while steering onto the ramp does not spin by itself and
+   * Lateral lean at takeoff. A flip needs a lean past it (see trickThresholds),
+   * so a lean held while steering onto the ramp does not flip by itself and
    * easing off it never does.
    */
   takeoffLean: number;
 }
 
-/** What the in-air trick meter shows: lateral lean against the two spin thresholds, all in [-1, 1]. */
+/** What the in-air trick meter shows: lateral lean against the two flip thresholds, all in [-1, 1]. */
 export interface AirLean {
   lean: number;
   left: number;
   right: number;
-  /** A side edge is on the floor, so no spin can start. */
+  /** A side edge is on the floor, so no flip can start. */
   sideGrounded: boolean;
-  spinning: boolean;
+  flipping: boolean;
 }
 
 /** A jump moment the renderer calls out next to the rider; `at` is game time in seconds. */
 export interface JumpCallout {
-  kind: 'takeoff' | 'spin' | 'trick' | 'crash';
+  kind: 'takeoff' | 'flip' | 'trick' | 'crash';
   at: number;
 }
 

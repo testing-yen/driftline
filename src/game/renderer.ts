@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
-import { spinProgress } from './jump.js';
+import { flipProgress } from './jump.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import {
   bakeFrames,
@@ -10,7 +10,7 @@ import {
   LeanTracker,
   PLAYER,
   RAMP,
-  spinFrame,
+  flipFrame,
   type SpriteSheet,
 } from './sprites.js';
 import type { AirLean, GamePhase, Gate, Jump, JumpCallout, PlayerState } from './types.js';
@@ -79,8 +79,8 @@ const AIR_GROW = 0.25;
 
 const CALLOUTS: Record<JumpCallout['kind'], { text: string; color: string }> = {
   takeoff: { text: `JUMP +${CONFIG.jumpScore}`, color: '#4da0ff' },
-  spin: { text: 'SPIN!', color: '#ff922b' },
-  trick: { text: `SPIN +${CONFIG.trickScore}`, color: '#ff922b' },
+  flip: { text: 'FLIP!', color: '#ff922b' },
+  trick: { text: `FLIP +${CONFIG.trickScore}`, color: '#ff922b' },
   crash: { text: 'CRASH!', color: '#ff3b3b' },
 };
 const CALLOUT_FONT = '900 30px system-ui, sans-serif';
@@ -382,8 +382,8 @@ export class Renderer {
     }
     const arc = airArc(jump, this.frame.time);
     this.drawAirShadow(x, y, arc);
-    const spin = spinProgress(jump, this.frame.time);
-    const frame = jump.spin === null || spin === null ? 'straight' : spinFrame(jump.spin.dir, spin);
+    const flip = flipProgress(jump, this.frame.time);
+    const frame = jump.flip === null || flip === null ? 'straight' : flipFrame(jump.flip.dir, flip);
     this.drawSprite(PLAYER, this.playerFrames, frame, x, y - AIR_PEAK_PX_PER_S * jump.duration * arc, 1 + AIR_GROW * arc);
   }
 
@@ -683,7 +683,7 @@ export class Renderer {
   }
 
   /**
-   * "JUMP +50", "SPIN +100" or "CRASH!" just below the rider's skis, where no
+   * "JUMP +50", "FLIP +100" or "CRASH!" just below the rider's skis, where no
    * other HUD element goes: the gauge, the grounded warning and the NEW BEST!
    * banner all sit above the rider. Pops in, holds, fades like the banner.
    */
@@ -715,7 +715,7 @@ export class Renderer {
 
   /**
    * In-air trick meter under the callout: lateral lean as a marker on a short
-   * track, with the two spin thresholds marked. Shows why a spin did or did
+   * track, with the two flip thresholds marked. Shows why a flip did or did
    * not start, which is otherwise invisible in under a second of air.
    */
   private drawAirLean(air: AirLean, rider: ScreenPoint): void {
@@ -741,8 +741,8 @@ export class Renderer {
     for (const t of [air.left, air.right]) ctx.fillRect(at(t) - 2, y - barH / 2 - 5, 4, barH + 10);
     ctx.beginPath();
     ctx.arc(at(air.lean), y, 9, 0, Math.PI * 2);
-    // Orange means a spin is (or would be) on; a grounded side edge blocks it, so stay white.
-    ctx.fillStyle = air.spinning || (past && !air.sideGrounded) ? GAUGE_COLORS.fastFill : GAUGE_COLORS.outline;
+    // Orange means a flip is (or would be) on; a grounded side edge blocks it, so stay white.
+    ctx.fillStyle = air.flipping || (past && !air.sideGrounded) ? GAUGE_COLORS.fastFill : GAUGE_COLORS.outline;
     ctx.fill();
     ctx.lineWidth = 3;
     ctx.strokeStyle = GAUGE_COLORS.ink;

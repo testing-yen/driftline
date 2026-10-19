@@ -8,7 +8,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="Driftline — open-source tilt-controlled downhill game for balance-board fitness." />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- Access guards every path; without credentials the manifest fetch is redirected to its login page. -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" href="/icons/icon-maskable-512.png" />
     <title>Driftline</title>

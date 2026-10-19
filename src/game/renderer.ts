@@ -42,8 +42,6 @@ function pulse(time: number): number {
 
 /** Mirrors the DOM pause button in style.css: 56px square, 12px in from the top-right corner. */
 const PAUSE_BUTTON = { size: 56, margin: 12 };
-/** Keeps the streak clear of the pause button. */
-const PAUSE_BUTTON_CLEARANCE = PAUSE_BUTTON.size + PAUSE_BUTTON.margin + 16;
 
 const GAUGE_COLORS = {
   track: 'rgba(14,26,43,0.82)',
@@ -59,17 +57,30 @@ const GAUGE_COLORS = {
 /** Gauge fraction from which the warning glow shows once the chaser passes full lean. */
 const OVER_MAX_GLOW_FROM = 0.8;
 
-/** Half the NEW BEST! banner's height at its largest pop-in scale, plus its outline. */
-const NEW_BEST_HALF_HEIGHT = 40;
-/** Room kept above the rider's centre: the rider plus the "rider" gauge dial beside them. */
-const RIDER_CLEARANCE = 70;
+/**
+ * The top-left HUD block (score, distance, BEST pill) ends this far down the
+ * screen; the streak sits level with BEST under the pause button.
+ */
+const HUD_BLOCK_BOTTOM = 118;
+/** Seconds to the golem's catch, at current speeds, under which its off-screen marker turns urgent. */
+const GOLEM_URGENT_S = 3;
+/** Smallest gap kept between HUD pieces, and between them and the rider. */
+const HUD_GAP = 8;
+/** The speed gauge runs across the top row, from right of the score and distance... */
+const GAUGE_LEFT = 140;
+/** ...to the pause button, at most this long, so a wide screen keeps room beside it for an alert. */
+const GAUGE_MAX_LENGTH = 260;
+const GAUGE_THICKNESS = 32;
+/** The target chevron reaches this far past either end of the bar. */
+const GAUGE_CHEVRON_HALF = 13;
+/** Bar centre, below the top of the screen: clears the chevron above it and keeps the golem marker above BEST. */
+const GAUGE_CENTRE_Y = 48;
+const NEW_BEST = { text: 'NEW BEST!', font: '900 56px system-ui, sans-serif', outline: 8 };
 const GROUNDED_WARNING = {
   text: 'Lift the edge!',
   font: '900 30px system-ui, sans-serif',
   height: 52,
   padX: 22,
-  /** Gap kept from the screen edge and the side gauge. */
-  gap: 12,
 };
 
 /** Peak height of a jump, world px per second of air time, so longer jumps fly higher... */
@@ -182,7 +193,7 @@ export class Renderer {
     airLean: AirLean | null,
   ): void {
     const { ctx, w, h } = this;
-    const playerScreenY = h * 0.62;
+    const playerScreenY = this.riderScreenY();
     const rider = { x: (w / 2 + player.x) * this.scale, y: playerScreenY * this.scale };
     const camY = player.y - playerScreenY;
     this.frame = { time, caught: phase === 'gameover', rider: { x: w / 2 + player.x, y: playerScreenY } };
@@ -231,20 +242,37 @@ export class Renderer {
 
     // HUD stays at 1:1 in screen px so text keeps its readable size.
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this.drawSideGauge(gauge, rider, time);
-    // A jump near the right edge rises past the gauge; the rider stays in front so the flip shows.
+    this.drawSpeedGauge(gauge, time);
+    // The banner and the warning share one alert slot; lifting the edge matters more than the celebration.
+    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
+    else if (phase === 'playing' && newBestAt !== null) {
+      const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
+      if (t >= 0 && t < 1) this.drawNewBestBanner(t, rider);
+    }
+    // A jump rises past the gauge and through the alert slot; the rider stays in front so the flip shows.
     ctx.setTransform(k, 0, 0, k, 0, 0);
     ctx.translate(sx, sy);
     this.drawPlayer(w / 2 + player.x, playerScreenY, player);
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    if (phase === 'playing' && chaser.active) this.drawGolemWarning(chaser, player, camY, time);
     this.drawHud(score, streak, player, phase, best);
-    if (phase === 'playing' && newBestAt !== null) {
-      const t = (time - newBestAt) / CONFIG.newBestBannerDuration;
-      if (t >= 0 && t < 1) this.drawNewBestBanner(t);
-    }
     if (phase === 'playing' && callout !== null) this.drawCallout(callout, rider, time);
     if (phase === 'playing' && airLean !== null) this.drawAirLean(airLean, rider);
-    if (phase === 'playing' && contact !== 'off') this.drawGroundedWarning(rider, time, contact);
+  }
+
+  /**
+   * The rider's centre in world px from the top of the view: riderScreenYFraction
+   * of the way down, but never so high that the rider runs into the HUD block
+   * on a short landscape screen.
+   */
+  private riderScreenY(): number {
+    const lowestHudCss = HUD_BLOCK_BOTTOM + HUD_GAP + this.riderHeadCss();
+    return Math.max(this.h * CONFIG.riderScreenYFraction, lowestHudCss / this.scale);
+  }
+
+  /** Screen px from the rider's centre up to the top of their sprite. */
+  private riderHeadCss(): number {
+    return (PLAYER.anchor.y * devicePxPerSpritePx(this.dpr * this.scale)) / this.dpr;
   }
 
   private drawSnow(player: PlayerState): void {
@@ -261,8 +289,8 @@ export class Renderer {
     ctx.fillRect(w / 2 - half - 26, -20, 18, h + 40);
     ctx.fillRect(w / 2 + half + 8, -20, 18, h + 40);
 
-    // Speed lines, denser at speed.
-    const lines = Math.floor(player.speed / 60);
+    // Speed lines, denser at speed. Per unit of downhill scale, so a faster-scrolling slope does not fill with them.
+    const lines = Math.floor(player.speed / (60 * CONFIG.downhillScale));
     ctx.strokeStyle = 'rgba(140,170,210,0.35)';
     ctx.lineWidth = 3;
     for (let i = 0; i < lines; i += 1) {
@@ -407,7 +435,7 @@ export class Renderer {
 
   private drawChaser(x: number, y: number): void {
     const { time, caught, rider } = this.frame;
-    const frame = beastFrame(time, Math.hypot(rider.x - x, rider.y - y), caught);
+    const frame = beastFrame(time, rider.x - x, rider.y - y, caught);
     this.drawSprite(BEAST, this.beastFrames, frame, x, y);
   }
 
@@ -450,13 +478,13 @@ export class Renderer {
   ): void {
     const { ctx, screenW: w, screenH: h } = this;
     const left = 18 + this.insetLeft;
-    const right = w - PAUSE_BUTTON_CLEARANCE - this.insetRight;
+    const right = w - PAUSE_BUTTON.margin - this.insetRight;
     ctx.fillStyle = '#22303f';
     ctx.font = '700 28px system-ui, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(`${Math.floor(score)}`, left, 44);
     ctx.font = '600 22px system-ui, sans-serif';
-    ctx.fillText(`${Math.floor(player.y / 10)} m`, left, 76);
+    ctx.fillText(`${Math.floor(player.y / CONFIG.pxPerMeter)} m`, left, 76);
     if (best !== null) {
       const label = `BEST ${best}`;
       ctx.font = '700 20px system-ui, sans-serif';
@@ -471,10 +499,11 @@ export class Renderer {
       ctx.fillText(label, left, 110);
     }
     if (streak >= 2) {
+      // Under the pause button, level with BEST: the top row belongs to the speed gauge.
       ctx.textAlign = 'right';
       ctx.fillStyle = '#1f7a3d';
       ctx.font = '700 24px system-ui, sans-serif';
-      ctx.fillText(`🔥 x${streak}`, right, 44);
+      ctx.fillText(`🔥 x${streak}`, right, 110);
     }
     if (phase === 'gameover' || phase === 'paused') {
       // The DOM panel sits on top of this dim.
@@ -483,26 +512,21 @@ export class Renderer {
     }
   }
 
-  /** Vertical speed bar under the pause button, up = faster. */
-  private drawSideGauge(gauge: GaugeModel, rider: ScreenPoint, time: number): void {
-    const thickness = 32;
-    const cx = this.sideGaugeX();
-    // Labels sit above and below the bar, not beside it, so nothing extends into the slope.
-    // The gap keeps them clear of the target chevron when it sits at either end of the bar.
-    const labelGap = 28;
-    const fastY = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size + 28;
-    const top = fastY + labelGap;
-    // Downhill is down the screen, so the bar and its SLOW label stop above the rider to keep the slope ahead clear.
-    const slowY = rider.y - 42;
-    const bottom = slowY - labelGap;
-    this.drawGaugeLabel('FAST', cx, fastY, 'center', GAUGE_COLORS.fastFill);
-    this.drawBarGauge(gauge, cx, bottom, -Math.PI / 2, bottom - top, thickness, time);
-    this.drawGaugeLabel('SLOW', cx, slowY, 'center', GAUGE_COLORS.slowFill);
+  /**
+   * Speed bar across the top row, slow at the left and fast at the right. With
+   * the rider high on the screen everything above them is snow already passed,
+   * so the HUD lives there and the slope ahead stays clear.
+   */
+  private drawSpeedGauge(gauge: GaugeModel, time: number): void {
+    const { x0, length } = this.gaugeSpan();
+    this.drawBarGauge(gauge, x0, this.insetTop + GAUGE_CENTRE_Y, 0, length, GAUGE_THICKNESS, time);
   }
 
-  /** Centre line of the side gauge; leaves room right of the bar for the chaser marker. */
-  private sideGaugeX(): number {
-    return this.screenW - this.insetRight - 46;
+  /** Where the gauge bar starts and how long it is, screen px. */
+  private gaugeSpan(): { x0: number; length: number } {
+    const x0 = this.insetLeft + GAUGE_LEFT + GAUGE_CHEVRON_HALF;
+    const pauseLeft = this.screenW - this.insetRight - PAUSE_BUTTON.margin - PAUSE_BUTTON.size;
+    return { x0, length: Math.min(GAUGE_MAX_LENGTH, pauseLeft - HUD_GAP - GAUGE_CHEVRON_HALF - x0) };
   }
 
   /**
@@ -605,6 +629,51 @@ export class Renderer {
   }
 
   /** A tiny golem face so the chaser line reads as "the beast", not another limit. */
+  /**
+   * While the golem is above the view (or hidden behind the HUD), a marker under
+   * the HUD at its x shows how far back it is. With the rider a third from the
+   * top it is otherwise on screen for only about a second before the catch.
+   * It pulses red once the catch is under GOLEM_URGENT_S away at current speeds.
+   */
+  private drawGolemWarning(chaser: Chaser, player: PlayerState, camY: number, time: number): void {
+    const golemY = (chaser.y - camY) * this.scale;
+    const top = HUD_BLOCK_BOTTOM + HUD_GAP;
+    // Once its centre clears the HUD the golem itself is in view; the marker would only cover it.
+    if (golemY > top) return;
+    const { ctx } = this;
+    const x = Math.max(this.insetLeft + 44, Math.min(this.screenW - this.insetRight - 44, (this.w / 2 + chaser.x) * this.scale));
+    const y = top + 14;
+    const gap = Math.max(0, player.y - chaser.y);
+    const closing = chaser.speed - player.speed;
+    const urgent = closing > 0 && gap / closing < GOLEM_URGENT_S;
+    ctx.save();
+    if (urgent) {
+      ctx.beginPath();
+      ctx.arc(x, y, 14 + 4 * pulse(time * 2), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,59,59,${0.25 + 0.35 * pulse(time * 2)})`;
+      ctx.fill();
+    }
+    this.drawBeastMarker(x, y);
+    ctx.beginPath();
+    ctx.moveTo(x - 7, y + 14);
+    ctx.lineTo(x + 7, y + 14);
+    ctx.lineTo(x, y + 22);
+    ctx.closePath();
+    ctx.fillStyle = GAUGE_COLORS.chaser;
+    ctx.fill();
+    ctx.font = '800 20px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = GAUGE_COLORS.ink;
+    const label = `${Math.ceil(gap / CONFIG.pxPerMeter)} m`;
+    ctx.strokeText(label, x, y + 25);
+    ctx.fillStyle = urgent ? GAUGE_COLORS.chaser : GAUGE_COLORS.outline;
+    ctx.fillText(label, x, y + 25);
+    ctx.restore();
+  }
+
   private drawBeastMarker(x: number, y: number): void {
     const { ctx } = this;
     ctx.beginPath();
@@ -623,48 +692,24 @@ export class Renderer {
     ctx.fillRect(x - 4, y + 3, 8, 2.5);
   }
 
-  private drawGaugeLabel(text: string, x: number, y: number, align: CanvasTextAlign, color: string): void {
-    const { ctx } = this;
-    ctx.save();
-    ctx.font = '800 20px system-ui, sans-serif';
-    ctx.textAlign = align;
-    ctx.textBaseline = 'middle';
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = GAUGE_COLORS.ink;
-    ctx.strokeText(text, x, y);
-    ctx.fillStyle = color;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-  }
-
-  /** Below the top-left HUD block and well above the rider at 62% height. */
-  private newBestBannerY(): number {
-    return Math.max(160, this.screenH * 0.26);
-  }
-
   /**
-   * Centre of the "Lift the edge!" pill. It goes between the NEW BEST! banner
-   * and the rider when that gap fits it (portrait), otherwise in the top row
-   * between the score and the streak, level with the pause button (landscape).
+   * Centre of the alert slot, shared by the NEW BEST! banner and the "Lift
+   * the edge!" pill, for an alert `width` by `height`. It goes in the band
+   * between the HUD block and the rider when that fits it (portrait), else
+   * in the top row right of the speed gauge (landscape). A screen with room
+   * for neither puts it over the middle of the top row.
    */
-  private groundedWarningCentre(rider: ScreenPoint, width: number): ScreenPoint {
-    const { height, gap } = GROUNDED_WARNING;
-    const bandTop = this.newBestBannerY() + NEW_BEST_HALF_HEIGHT;
-    const bandBottom = rider.y - RIDER_CLEARANCE;
-    if (bandBottom - bandTop < height + 2 * gap) {
-      return {
-        x: (this.insetLeft + this.screenW - this.insetRight) / 2,
-        y: this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size / 2,
-      };
-    }
-    const left = this.insetLeft + gap;
-    // The side gauge's target chevron reaches 40px left of its centre line.
-    const right = this.sideGaugeX() - 40 - gap;
-    return {
-      x: Math.max(left + width / 2, (left + right) / 2),
-      y: (bandTop + bandBottom) / 2,
-    };
+  private alertCentre(rider: ScreenPoint, width: number, height: number): ScreenPoint {
+    const middleX = (this.insetLeft + this.screenW - this.insetRight) / 2;
+    const bandTop = HUD_BLOCK_BOTTOM + HUD_GAP;
+    const bandBottom = rider.y - this.riderHeadCss() - HUD_GAP;
+    if (bandBottom - bandTop >= height) return { x: middleX, y: (bandTop + bandBottom) / 2 };
+    const topRowY = this.insetTop + PAUSE_BUTTON.margin + PAUSE_BUTTON.size / 2;
+    const { x0, length } = this.gaugeSpan();
+    const slotLeft = x0 + length + GAUGE_CHEVRON_HALF + HUD_GAP;
+    const slotRight = this.screenW - this.insetRight - PAUSE_BUTTON.margin - PAUSE_BUTTON.size - HUD_GAP;
+    if (slotRight - slotLeft >= width) return { x: (slotLeft + slotRight) / 2, y: topRowY };
+    return { x: middleX, y: topRowY };
   }
 
   private drawGroundedWarning(rider: ScreenPoint, time: number, contact: Exclude<EdgeContact, 'off'>): void {
@@ -673,7 +718,7 @@ export class Renderer {
     ctx.save();
     ctx.font = font;
     const width = ctx.measureText(text).width + 2 * padX;
-    const { x, y } = this.groundedWarningCentre(rider, width);
+    const { x, y } = this.alertCentre(rider, width, height);
     ctx.beginPath();
     ctx.roundRect(x - width / 2, y - height / 2, width, height, height / 2);
     ctx.fillStyle = '#d62828';
@@ -769,26 +814,29 @@ export class Renderer {
   }
 
   /** t runs 0..1 over the banner's lifetime: pop in, hold, fade out. */
-  private drawNewBestBanner(t: number): void {
-    const { ctx, screenW: w } = this;
+  private drawNewBestBanner(t: number, rider: ScreenPoint): void {
+    const { ctx } = this;
+    const { text, font, outline } = NEW_BEST;
     const grow = Math.min(1, t / 0.15);
+    // Peaks just over 1 on the way in, so the slot is sized at full size plus the outline.
     const scale = 0.6 + 0.4 * grow + 0.15 * Math.sin(grow * Math.PI);
     const alpha = Math.min(grow, t > 0.75 ? (1 - t) / 0.25 : 1);
-    const cx = (this.insetLeft + w - this.insetRight) / 2;
-    const cy = this.newBestBannerY();
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.translate(cx, cy);
-    ctx.scale(scale, scale);
-    ctx.font = '900 56px system-ui, sans-serif';
+    ctx.font = font;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const m = ctx.measureText(text);
+    const height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent + outline;
+    const { x, y } = this.alertCentre(rider, m.width + outline, height);
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
     ctx.lineJoin = 'round';
-    ctx.lineWidth = 8;
+    ctx.lineWidth = outline;
     ctx.strokeStyle = '#22303f';
-    ctx.strokeText('NEW BEST!', 0, 0);
+    ctx.strokeText(text, 0, 0);
     ctx.fillStyle = '#ffc21a';
-    ctx.fillText('NEW BEST!', 0, 0);
+    ctx.fillText(text, 0, 0);
     ctx.restore();
   }
 }

@@ -9,6 +9,8 @@
  * uphill, facing the rider.
  */
 
+import { CONFIG } from '../config.js';
+
 export const TRANSPARENT = '.';
 
 export interface SpriteSheet<F extends string> {
@@ -618,10 +620,21 @@ export class LeanTracker {
 
 /** Seconds each glide frame shows. */
 const BEAST_GLIDE_FRAME_S = 0.2;
-/** World px between beast and rider centres inside which the beast lunges. Catch happens at 44. */
+/**
+ * World px between beast and rider centres inside which the beast lunges, at
+ * downhill scale 1. Catch happens at 44.
+ */
 export const BEAST_LUNGE_DISTANCE = 130;
 
-export function beastFrame(time: number, distanceToRider: number, caught: boolean): BeastFrame {
-  if (caught || distanceToRider < BEAST_LUNGE_DISTANCE) return 'lunge';
+/**
+ * `dx`, `dy` run from the beast to the rider in world px. The beast closes
+ * the downhill gap K times faster at downhill scale K but catches at the same
+ * reach, so the downhill gap left beyond that reach counts ÷ K: the lunge
+ * starts as long before the catch at any scale.
+ */
+export function beastFrame(time: number, dx: number, dy: number, caught: boolean): BeastFrame {
+  const reach = CONFIG.chaserCatchRadius + CONFIG.playerRadius;
+  const downhill = Math.min(Math.abs(dy), reach) + Math.max(0, Math.abs(dy) - reach) / CONFIG.downhillScale;
+  if (caught || Math.hypot(dx, downhill) < BEAST_LUNGE_DISTANCE) return 'lunge';
   return Math.floor(time / BEAST_GLIDE_FRAME_S) % 2 === 0 ? 'glideA' : 'glideB';
 }

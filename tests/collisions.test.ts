@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { circlesCollide, gateCrossed, gatePassed, rampHit } from '../src/game/collisions.js';
+import { makeConfig } from '../src/config.js';
+import { circlesCollide, gateCrossed, gatePassed, rampHit, sweptHitsObstacle } from '../src/game/collisions.js';
+import { SPEEDX_CHOICES } from '../src/dev/speedx.js';
+import type { Obstacle } from '../src/game/types.js';
+
+/** The longest move a rider makes on the snow in one 1/60 s frame: landing at air speed, at the largest dev downhill scale. */
+const FASTEST = makeConfig(Math.max(...SPEEDX_CHOICES));
+const MAX_STEP = (FASTEST.fullLeanSpeed * FASTEST.airSpeedBoost) / 60;
+const RIDER_R = FASTEST.playerRadius;
+/** The smallest tree the world places: radius 12 at scale 0.8. */
+const smallTree: Obstacle = { id: 1, kind: 'pine', x: 0, y: 1000, r: 12 * 0.8, scale: 0.8 };
+
+/** Rides straight down at `x` in MAX_STEP frames, starting `phase` px into a step; true if any frame hits the tree. */
+function rideDown(x: number, phase: number): boolean {
+  for (let y = smallTree.y - 200 + phase; y < smallTree.y + 200; y += MAX_STEP) {
+    if (sweptHitsObstacle({ x, y }, { x, y: y + MAX_STEP }, RIDER_R, [smallTree])) return true;
+  }
+  return false;
+}
+
+const PHASES = Array.from({ length: 50 }, (_, i) => (i / 50) * MAX_STEP);
 
 describe('circlesCollide', () => {
   it('detects overlapping circles', () => {
@@ -64,5 +84,56 @@ describe('gatePassed', () => {
   it('respects an offset gate center', () => {
     expect(gatePassed(150, 150, 70)).toBe(true);
     expect(gatePassed(0, 150, 70)).toBe(false);
+  });
+});
+
+describe('sweptHitsObstacle', () => {
+  it('needs the swept test: checking only where each frame ends misses some grazing passes at the max step', () => {
+    expect(MAX_STEP).toBeGreaterThan(25);
+    const reach = RIDER_R + smallTree.r;
+    // Grazing the tree's edge, some frames would end either side of it.
+    const x = reach - 1;
+    const endsInside = PHASES.filter((phase) => {
+      for (let y = smallTree.y - 200 + phase; y < smallTree.y + 200; y += MAX_STEP) {
+        if (circlesCollide(x, y, RIDER_R, smallTree.x, smallTree.y, smallTree.r)) return true;
+      }
+      return false;
+    });
+    expect(endsInside.length).toBeLessThan(PHASES.length);
+  });
+
+  it('hits a rider riding straight through the centre at the max step, whatever the frame phase', () => {
+    expect(PHASES.every((phase) => rideDown(0, phase))).toBe(true);
+  });
+
+  it('hits a rider grazing the edge at the max step, whatever the frame phase', () => {
+    const reach = RIDER_R + smallTree.r;
+    expect(PHASES.every((phase) => rideDown(reach - 0.5, phase))).toBe(true);
+    expect(PHASES.every((phase) => rideDown(-(reach - 0.5), phase))).toBe(true);
+  });
+
+  it('misses a rider passing just clear of the tree', () => {
+    const reach = RIDER_R + smallTree.r;
+    expect(PHASES.some((phase) => rideDown(reach + 0.5, phase))).toBe(false);
+  });
+
+  it('hits a diagonal move that crosses the tree mid-frame', () => {
+    expect(sweptHitsObstacle({ x: -30, y: 985 }, { x: 30, y: 1015 }, RIDER_R, [smallTree])).toBe(true);
+    expect(sweptHitsObstacle({ x: -30, y: 1000 }, { x: -30, y: 1000 }, RIDER_R, [smallTree])).toBe(false);
+  });
+});
+
+describe('gate and ramp crossings at the max step', () => {
+  it('fire on exactly one frame whatever the frame phase', () => {
+    const ramp = { id: 1, x: 0, y: 1000, halfWidth: 44 };
+    for (const phase of PHASES) {
+      let gates = 0;
+      let ramps = 0;
+      for (let y = 800 + phase; y < 1200; y += MAX_STEP) {
+        if (gateCrossed(y, y + MAX_STEP, 1000)) gates += 1;
+        if (rampHit(y, y + MAX_STEP, 0, ramp)) ramps += 1;
+      }
+      expect([gates, ramps]).toEqual([1, 1]);
+    }
   });
 });

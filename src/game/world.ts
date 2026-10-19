@@ -5,6 +5,13 @@ import type { Gate, Obstacle, Ramp } from './types.js';
 /** Random positions tried for a ramp or an obstacle before giving up on it. */
 const PLACEMENT_TRIES = 30;
 
+/** Tree and rock radii before their random 0.8-1.4x scale. */
+const BASE_RADIUS = { pine: 12, rock: 16 } as const;
+const MIN_SCALE = 0.8;
+const SCALE_RANGE = 0.6;
+/** The largest radius a tree or rock can roll, so a ramp can keep a neighbouring chunk's obstacles out of reach. */
+const MAX_OBSTACLE_RADIUS = BASE_RADIUS.rock * (MIN_SCALE + SCALE_RANGE);
+
 /**
  * Procedural downhill course: chunks of obstacles, slalom gates and jump
  * ramps generated ahead of the player with a seeded RNG. Original obstacle
@@ -59,8 +66,8 @@ export class World {
 
     for (let n = 0; n < CONFIG.obstaclesPerChunk; n += 1) {
       const kind = this.rng() < 0.6 ? 'pine' : 'rock';
-      const scale = 0.8 + this.rng() * 0.6;
-      const r = (kind === 'pine' ? 12 : 16) * scale;
+      const scale = MIN_SCALE + this.rng() * SCALE_RANGE;
+      const r = BASE_RADIUS[kind] * scale;
       for (let tries = 0; tries < PLACEMENT_TRIES; tries += 1) {
         const x = (this.rng() * 2 - 1) * half;
         const y = y0 + this.rng() * CONFIG.chunkHeight;
@@ -84,13 +91,15 @@ export class World {
   }
 
   /**
-   * A ramp whose clear zone fits inside this chunk, so no other chunk's trees
-   * reach it, and stays off every gate line. Null if no spot turned up.
+   * A ramp whose clear zone, widened by the largest obstacle radius, fits
+   * inside this chunk, so no other chunk's trees reach it, and stays off every
+   * gate line. Null if no spot turned up.
    */
   private placeRamp(y0: number, gateYs: number[]): Ramp | null {
-    const { rampLength: length, rampClearance: clear, rampHalfWidth: halfWidth } = CONFIG;
-    const top = y0 + length + clear;
-    const span = CONFIG.chunkHeight - length - 2 * clear;
+    const { rampLength: length, rampClearanceY: clear, rampHalfWidth: halfWidth } = CONFIG;
+    const margin = clear + MAX_OBSTACLE_RADIUS;
+    const top = y0 + length + margin;
+    const span = CONFIG.chunkHeight - length - 2 * margin;
     for (let tries = 0; tries < PLACEMENT_TRIES; tries += 1) {
       const y = top + this.rng() * span;
       const x = (this.rng() * 2 - 1) * (CONFIG.worldHalfWidth - halfWidth);
@@ -104,10 +113,10 @@ export class World {
 
 /** Does a circle at (x, y) with radius r reach into the clear zone around the ramp's footprint? */
 function inClearZone(ramp: Ramp, x: number, y: number, r: number): boolean {
-  const reach = CONFIG.rampClearance + r;
+  const reachY = CONFIG.rampClearanceY + r;
   return (
-    Math.abs(x - ramp.x) < ramp.halfWidth + reach &&
-    y > ramp.y - CONFIG.rampLength - reach &&
-    y < ramp.y + reach
+    Math.abs(x - ramp.x) < ramp.halfWidth + CONFIG.rampClearanceX + r &&
+    y > ramp.y - CONFIG.rampLength - reachY &&
+    y < ramp.y + reachY
   );
 }

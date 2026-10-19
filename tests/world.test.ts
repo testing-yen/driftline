@@ -11,11 +11,12 @@ function course(seed: number): World {
   return world;
 }
 
-/** Distance from a point to the ramp's footprint: the lip's width, running rampLength uphill of it. */
-function distanceToFootprint(ramp: { x: number; y: number; halfWidth: number }, x: number, y: number): number {
-  const dx = Math.max(0, Math.abs(x - ramp.x) - ramp.halfWidth);
-  const dy = Math.max(0, ramp.y - CONFIG.rampLength - y, y - ramp.y);
-  return Math.hypot(dx, dy);
+/** Gaps from a circle's edge to the ramp's footprint (the lip's width, running rampLength uphill of it), across and down the slope. */
+function gapsToFootprint(ramp: { x: number; y: number; halfWidth: number }, ob: { x: number; y: number; r: number }) {
+  return {
+    x: Math.abs(ob.x - ramp.x) - ramp.halfWidth - ob.r,
+    y: Math.max(ramp.y - CONFIG.rampLength - ob.y, ob.y - ramp.y) - ob.r,
+  };
 }
 
 describe.each(SEEDS)('World ramps (seed %i)', (seed) => {
@@ -30,17 +31,20 @@ describe.each(SEEDS)('World ramps (seed %i)', (seed) => {
   });
 
   it('never have a tree or rock in their clear zone', () => {
-    let nearest = Infinity;
-    for (const ramp of world.ramps) {
-      for (const ob of world.obstacles) nearest = Math.min(nearest, distanceToFootprint(ramp, ob.x, ob.y) - ob.r);
-    }
-    expect(nearest).toBeGreaterThanOrEqual(CONFIG.rampClearance);
+    const inside = world.ramps.flatMap((ramp) =>
+      world.obstacles.filter((ob) => {
+        const gap = gapsToFootprint(ramp, ob);
+        return gap.x < CONFIG.rampClearanceX && gap.y < CONFIG.rampClearanceY;
+      }),
+    );
+    expect(world.obstacles.length).toBeGreaterThan(0);
+    expect(inside).toEqual([]);
   });
 
   it('never sit on a gate line', () => {
     const onGateLine = world.ramps.filter((ramp) =>
       world.gates.some(
-        (gate) => gate.y > ramp.y - CONFIG.rampLength - CONFIG.rampClearance && gate.y < ramp.y + CONFIG.rampClearance,
+        (gate) => gate.y > ramp.y - CONFIG.rampLength - CONFIG.rampClearanceY && gate.y < ramp.y + CONFIG.rampClearanceY,
       ),
     );
     expect(onGateLine).toEqual([]);

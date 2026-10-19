@@ -9,7 +9,7 @@
 import { parseSpeedx } from './dev/speedx.js';
 
 /** Production downhill scale; see makeConfig. */
-export const DEFAULT_DOWNHILL_SCALE = 3;
+export const DEFAULT_DOWNHILL_SCALE = 3.5;
 
 /**
  * Builds the tuning for a downhill scale K. K stretches the slope along the

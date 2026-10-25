@@ -4,6 +4,10 @@
 proof-of-concept for the **open balance-board fitness platform** idea: a wobble
 board plus the phone in your pocket becomes a full-body game controller.
 
+| <img src="docs/screenshots/flip.png" width="200" alt="Rider mid front flip over a snow kicker, x3 gate streak"> | <img src="docs/screenshots/new-best.png" width="200" alt="NEW BEST! banner as the score passes the session best, FLIP +100"> | <img src="docs/screenshots/golem.png" width="200" alt="The avalanche golem closing in from uphill, speed bar glowing red"> | <img src="docs/screenshots/run-summary.png" width="200" alt="Run summary: NEW BEST!, 10087 pts, session scoreboard"> |
+|:-:|:-:|:-:|:-:|
+| Hit a kicker, lean to flip | Beat your best mid-run | The golem is coming | One run, one plank |
+
 You are a rider carving down an endless slope. Tilt the board left and right to
 steer, lean forward for speed, level out to slow down. Thread slalom gates
 for points, dodge pines and rocks — and keep an eye uphill: after a while, an

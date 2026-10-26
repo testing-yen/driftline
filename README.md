@@ -238,5 +238,5 @@ If you contribute art, music, or names: **make it yours, don't homage theirs.**
 
 ## License
 
-TBD — pick one before publishing (MIT or GPL-3.0 recommended for the
-open-platform goal).
+[MIT](LICENSE). Art, sprites and names in this repo are original and covered
+by the same license.

@@ -1,8 +1,11 @@
 # Cloudflare Pages response headers (https://developers.cloudflare.com/pages/configuration/headers/).
 # The game is fully same-origin and static: no inline scripts or styles, no third-party requests.
+# The one exception is the Cloudflare Web Analytics beacon, which the chuangwangfu.com zone injects
+# into every subdomain; it loads from static.cloudflareinsights.com (with SRI) and reports to the
+# same-origin /cdn-cgi/rum endpoint, so only script-src needs widening.
 # Tilt input reads DeviceOrientation/DeviceMotion, so only the motion sensors stay allowed.
 /*
-  Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer

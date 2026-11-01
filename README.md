@@ -66,12 +66,10 @@ You need:
    ride.** Tilt left or right to steer; press the front edge forward and down
    to speed up.
 
-**Calibrate once before your first run.** Until you do, the game assumes a
-taller board whose edges reach the floor at about 28–38°, so on this one you
-would never reach full speed or full steer. Tap **Calibrate board** on the
-start screen and push each edge to the floor when asked (details in step 5 of
-[Test it on iPhone](#test-it-on-iphone)). Calibrate again if you change the
-board or the ball.
+The game's default angles are this board's ~19°, so you can ride straight
+away. Run **Calibrate board** (step 5 of [Test it on iPhone](#test-it-on-iphone))
+if your board differs (a different ball, thickness, or size), if "Lift the
+edge!" shows before the edge touches the floor, or if full speed never arrives.
 
 ## Run it locally
 
@@ -160,8 +158,9 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
       the previous measurement.
 
    The phone remembers the result (localStorage key `driftline.boardReach.v1`).
-   Until you calibrate, the game uses angles measured on one wobble board
-   (`DEFAULT_REACH` in `src/input/boardReach.ts`).
+   Until you calibrate, the game uses the angles of the DIY board in
+   [Build the board](#build-the-board) (`DEFAULT_REACH` in
+   `src/input/boardReach.ts`).
 
    Speed comes from leaning **forward** only (leaning back is nearly
    impossible in a plank): a level board is the slowest, and full speed

@@ -15,11 +15,12 @@ export type LeanDirection = keyof BoardReach;
 export const LEAN_DIRECTIONS: readonly LeanDirection[] = ['forward', 'back', 'left', 'right'];
 
 /**
- * Measured on 2026-10-16 on the user's wobble board, phone mounted portrait
- * (35.1, 34.2, 27.9, 37.8 degrees, rounded). Custom hardware must re-measure
- * with the Calibrate board flow.
+ * The DIY board from the README's "Build the board" section, so it plays
+ * without calibrating: a ~50 cm square riding ~8.9 cm high on a softball puts
+ * each edge on the floor at about atan(8.9 / 25), ~19 degrees. Other boards
+ * re-measure with the Calibrate board flow.
  */
-export const DEFAULT_REACH: BoardReach = Object.freeze({ forward: 35, back: 34, left: 28, right: 38 });
+export const DEFAULT_REACH: BoardReach = Object.freeze({ forward: 19, back: 19, left: 19, right: 19 });
 
 /** Stored reach outside this range is a corrupt value or a phone not on a board, not a real measurement. */
 export const REACH_LIMITS_DEG = { min: 3, max: 80 } as const;

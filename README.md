@@ -35,6 +35,44 @@ readable game sessions** — can be open, hackable, and genuinely fun. The game
 is intentionally simple (Canvas 2D, no engine) so contributors can read the
 whole thing in an afternoon and start tuning.
 
+## Play it
+
+Open **https://driftline.chuangwangfu.com** on your phone. It's free, with
+nothing to install and no login.
+
+- **No board yet?** Pick **Handheld**: hold the phone in both hands, tilt left
+  or right to steer, and tilt the top edge **toward you** to speed up.
+- **On a board**, pick **Board**. Any wobble board works; the one below takes
+  about 10 minutes to build.
+
+## Build the board
+
+You need:
+
+- a wooden board, about 50 × 50 cm (20 × 20 in)
+- one standard 12-inch softball, about 3.8 in (9.7 cm) across
+- a drill with a 2-inch (51 mm) hole saw
+- painter's tape, or any phone mount
+
+1. **Drill a 2-inch hole in the center of the board.**
+2. **Seat the softball in the hole from underneath.** The ball is the pivot.
+   The board rides about 3.5 in (9 cm) off the ground and tilts in every
+   direction: an edge reaches the floor at about 19° from level, a corner at
+   about 14°.
+3. **Tape your phone to the center of the front edge**, lying flat with the
+   screen facing you and the top edge pointing away. Open
+   driftline.chuangwangfu.com.
+4. **Pick Board mode, get into a plank with your forearms on the board, and
+   ride.** Tilt left or right to steer; press the front edge forward and down
+   to speed up.
+
+**Calibrate once before your first run.** Until you do, the game assumes a
+taller board whose edges reach the floor at about 28–38°, so on this one you
+would never reach full speed or full steer. Tap **Calibrate board** on the
+start screen and push each edge to the floor when asked (details in step 5 of
+[Test it on iPhone](#test-it-on-iphone)). Calibrate again if you change the
+board or the ball.
+
 ## Run it locally
 
 Requirements: Node 22 (pinned in `.nvmrc`, which CI also reads; with nvm, run
@@ -97,7 +135,8 @@ The game is a PWA: it runs in mobile Safari with no App Store involved.
    (localStorage key `driftline.playMode.v1`); the desktop keyboard has no
    modes.
    - **Board** (default): mount the phone in **portrait, screen facing up, top
-     edge pointing forward** on the board. Hold the board level while the game
+     edge pointing forward** on the board (the [DIY board](#build-the-board)
+     or any wobble board). Hold the board level while the game
      calibrates neutral (~1 second), then ride.
    - **Handheld**: hold the phone in portrait however is comfortable, keep it
      still while the game calibrates neutral, then ride. Tilt the top edge

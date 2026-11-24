@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0//EN">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.yen.agent-queue</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/yen/repo/driftline-queue/.agent-queue/runner.sh</string>
+    <string>/Users/yen/repo/driftline-queue</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/yen/repo/driftline-queue</string>
+  <key>StartInterval</key>
+  <integer>300</integer>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>/Users/yen/Library/Logs/agent-queue.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/yen/Library/Logs/agent-queue.err.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/yen/.nvm/versions/node/v18.20.2/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>CLAUDE_BIN</key>
+    <string>/Users/yen/.nvm/versions/node/v18.20.2/bin/claude</string>
+    <key>QUEUE_BRANCH</key>
+    <string>agent-queue</string>
+  </dict>
+</dict>
+</plist>

@@ -240,7 +240,6 @@ export class Game {
     const outcome = landing(jump, lean);
     if (outcome === 'crash') {
       this.crash();
-      this.callout = { kind: 'crash', at: this.time };
       return;
     }
     this.player.landingCarry = CONFIG.landingCarryS;
@@ -257,5 +256,6 @@ export class Game {
     this.score = applyStumblePenalty(this.score);
     this.streak = 0;
     this.renderer.addShake(8);
+    this.callout = { kind: 'crash', at: this.time };
   }
 }

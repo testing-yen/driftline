@@ -89,10 +89,12 @@ export function makeConfig(downhillScale: number) {
     landingCarryS: 1.0, // after a clean landing, speed eases from air speed to the lean target over about this long, s
 
     /** Chaser ("avalanche golem") — the run timer */
-    chaserTriggerDistance: 4500 * k, // px travelled before the chaser appears (~17s in)
-    chaserSpawnBehind: 850 * k, // px behind the player at spawn
-    chaserSpeed: 295 * k, // px/s — about halfway from flat to full lean, so a level board gets caught
-    chaserAccel: 5 * k, // px/s^2 — guarantees even tuckers get caught eventually
+    // Survival at a held lean, no trees (tests/chaserCurve.test.ts): level ~56 s, half lean ~76 s, full lean ~118 s.
+    // Closing faster at the catch would cut the beast's lunge frame below what a rider can see (downhillScale.test.ts).
+    chaserTriggerDistance: 4500 * k, // px travelled before the chaser appears (~31 s in on a level board, ~10 s at full lean)
+    chaserSpawnBehind: 2100 * k, // px behind the player at spawn; far back, so the long chase is what separates leaning from coasting
+    chaserSpeed: 150 * k, // px/s — just above flatSpeed, so a level board gets caught
+    chaserAccel: 6.25 * k, // px/s^2 — guarantees even tuckers get caught eventually
     chaserTurnSpeed: 260, // px/s lateral homing speed
     chaserCatchRadius: 30, // catch distance, px
 

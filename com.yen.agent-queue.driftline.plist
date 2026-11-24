@@ -7,7 +7,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/yen/repo/driftline-queue/.agent-queue/runner.sh</string>
+    <string>/Users/yen/.agent-queue/runner.sh</string>
     <string>/Users/yen/repo/driftline-queue</string>
   </array>
   <key>WorkingDirectory</key>

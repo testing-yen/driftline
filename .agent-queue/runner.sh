@@ -150,6 +150,9 @@ import json, sys
 result, session_id, cost, turns = "", "", "", ""
 try:
     d = json.load(open(raw_json, encoding="utf-8"))
+    if isinstance(d, list):
+        d = next((e for e in reversed(d)
+                  if isinstance(e, dict) and e.get("type") == "result"), {})
     result = str(d.get("result", ""))
     session_id = str(d.get("session_id", ""))
     cost = str(d.get("total_cost_usd", ""))

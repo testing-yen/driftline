@@ -4,6 +4,10 @@
 proof-of-concept for the **open balance-board fitness platform** idea: a wobble
 board plus the phone in your pocket becomes a full-body game controller.
 
+<p align="center">
+  <img src="docs/demo.gif" width="300" alt="25-second Driftline demo: gameplay on the slope, the phone on a softball balance board tracking plank time, the four steps to build the board, and the driftline.chuangwangfu.com end card">
+</p>
+
 | <img src="docs/screenshots/flip.png" width="200" alt="Rider mid front flip over a snow kicker, x3 gate streak"> | <img src="docs/screenshots/new-best.png" width="200" alt="NEW BEST! banner as the score passes the session best, FLIP +100"> | <img src="docs/screenshots/golem.png" width="200" alt="The avalanche golem closing in from uphill, speed bar glowing red"> | <img src="docs/screenshots/run-summary.png" width="200" alt="Run summary: NEW BEST!, 10087 pts, session scoreboard"> |
 |:-:|:-:|:-:|:-:|
 | Hit a kicker, lean to flip | Beat your best mid-run | The golem is coming | One run, one plank |

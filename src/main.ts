@@ -1,5 +1,7 @@
 import './style.css';
+import { unlockAudio } from './audio/sfx.js';
 import { Game } from './game/game.js';
+import { loadJuiceLevel, saveJuiceLevel } from './game/juice.js';
 import { Renderer } from './game/renderer.js';
 import { SessionBoard, boardsPerMode } from './game/session.js';
 import { loadReach } from './input/boardReach.js';
@@ -10,6 +12,7 @@ import type { TiltInput } from './input/TiltInput.js';
 import { registerServiceWorker } from './pwa.js';
 import { calibrateBoardButton, showCalibration } from './ui/calibratePanel.js';
 import { showGameOver } from './ui/gameOverPanel.js';
+import { juicePicker } from './ui/juicePicker.js';
 import { MODE_COPY, modePicker } from './ui/modePicker.js';
 import { showPauseButton, showPaused } from './ui/pausePanel.js';
 
@@ -25,6 +28,7 @@ const boards = boardsPerMode();
 const keysBoard = new SessionBoard();
 const renderer = new Renderer(canvas);
 let game: Game | null = null;
+let juiceLevel = loadJuiceLevel();
 let wakeLock: WakeLockSentinel | null = null;
 
 async function requestWakeLock(): Promise<void> {
@@ -107,6 +111,13 @@ function showMenu(input: TiltInput): void {
       }),
     );
   }
+  panel.append(
+    juicePicker(juiceLevel, (level) => {
+      juiceLevel = level;
+      saveJuiceLevel(level);
+      showMenu(input);
+    }),
+  );
   panel.append(controls, startBtn);
 
   if (angles?.profile.calibratesReach) {
@@ -150,7 +161,7 @@ function startGame(input: TiltInput): void {
   game?.stop();
   const mode = input.angles?.profile.mode;
   const board = mode ? boards[mode] : keysBoard;
-  game = new Game(renderer, input, board.bestScore);
+  game = new Game(renderer, input, board.bestScore, juiceLevel);
   game.onGameOverCallback((run) => {
     const outcome = board.record(run);
     const onRideAgain = () => {
@@ -174,6 +185,17 @@ function startGame(input: TiltInput): void {
 
 function boot(): void {
   registerServiceWorker();
+
+  // Browsers only let audio start inside a user gesture; the context resumes on any later one too.
+  for (const type of ['pointerdown', 'keydown', 'touchend'] as const) {
+    window.addEventListener(
+      type,
+      () => {
+        if (juiceLevel !== 'off') unlockAudio();
+      },
+      { capture: true, passive: true },
+    );
+  }
 
   // Coming back stays paused until the rider taps Resume.
   document.addEventListener('visibilitychange', () => {

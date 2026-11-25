@@ -49,7 +49,7 @@ function survive(lean: number, seed: number, clean: boolean): Survival {
   vi.spyOn(Date, 'now').mockReturnValue(seed);
   vi.stubGlobal('requestAnimationFrame', () => 0);
   vi.stubGlobal('cancelAnimationFrame', () => undefined);
-  const game = new Game(nullRenderer, constantLean(lean), null);
+  const game = new Game(nullRenderer, constantLean(lean), null, 'full');
   let caught: { durationS: number; distanceM: number } | null = null;
   game.onGameOverCallback((run) => {
     caught = run;

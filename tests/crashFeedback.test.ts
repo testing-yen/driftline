@@ -41,7 +41,7 @@ describe('riding into a tree', () => {
       reset() {},
       addShake() {},
     } as unknown as Renderer;
-    const game = new Game(renderer, levelBoard, null);
+    const game = new Game(renderer, levelBoard, null, 'full');
     game.start();
     const internals = game as unknown as GameInternals;
     internals.update(STEP);

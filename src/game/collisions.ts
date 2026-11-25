@@ -52,3 +52,13 @@ export function gatePassed(playerX: number, centerX: number, halfWidth: number):
 export function rampHit(prevY: number, newY: number, playerX: number, ramp: Ramp): boolean {
   return gateCrossed(prevY, newY, ramp.y) && gatePassed(playerX, ramp.x, ramp.halfWidth);
 }
+
+/**
+ * Gap in px between the rider's and the obstacle's edges, sideways, if the
+ * rider passed the obstacle's y this frame; null otherwise. The rider only
+ * moves downhill, so each obstacle yields a gap on exactly one frame.
+ */
+export function passGap(prevY: number, newY: number, playerX: number, r: number, ob: Obstacle): number | null {
+  if (!gateCrossed(prevY, newY, ob.y)) return null;
+  return Math.abs(playerX - ob.x) - r - ob.r;
+}

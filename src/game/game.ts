@@ -1,7 +1,9 @@
+import { whoosh } from '../audio/sfx.js';
 import { CONFIG } from '../config.js';
 import type { TiltInput } from '../input/TiltInput.js';
 import { Chaser } from './chaser.js';
-import { gateCrossed, gatePassed, rampHit, sweptHitsObstacle } from './collisions.js';
+import { gateCrossed, gatePassed, passGap, rampHit, sweptHitsObstacle } from './collisions.js';
+import { Juice, type JuiceLevel } from './juice.js';
 import { easeSpeed, hasLanded, landing, takeoff, trickThresholds, updateAir } from './jump.js';
 import type { Renderer } from './renderer.js';
 import { applyStumblePenalty, passedBest, scoreForDistance, scoreForGate } from './scoring.js';
@@ -33,6 +35,9 @@ export class Game {
   private score = 0;
   private streak = 0;
   private gatesCleared = 0;
+  /** Obstacles passed within nearMissMarginPx this run, counted whatever the effects setting. */
+  private nearMisses = 0;
+  private readonly juice: Juice;
   /** Latest jump moment for the renderer to call out; null until the first jump. */
   private callout: JumpCallout | null = null;
   /** Latest lateral lean and side-edge state, for the in-air trick meter. */
@@ -52,7 +57,10 @@ export class Game {
     readonly input: TiltInput,
     /** Session best score to beat; null on the session's first run. */
     private readonly best: number | null,
-  ) {}
+    juiceLevel: JuiceLevel,
+  ) {
+    this.juice = new Juice(juiceLevel, { shake: (px) => this.renderer.addShake(px), whoosh });
+  }
 
   onGameOverCallback(cb: (run: RunResult) => void): void {
     this.onGameOver = cb;
@@ -60,6 +68,10 @@ export class Game {
 
   get currentScore(): number {
     return this.score;
+  }
+
+  get nearMissCount(): number {
+    return this.nearMisses;
   }
 
   /** Begins a new run from zero. */
@@ -117,7 +129,7 @@ export class Game {
     });
     const { jump } = this.player;
     const airLean: AirLean | null = jump && { ...this.lateral, ...trickThresholds(jump), flipping: jump.flip !== null };
-    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout, airLean);
+    this.renderer.render(this.world, this.player, this.chaser, this.score, this.streak, this.phase, this.time, this.best, this.newBestAt, gauge, this.contact, this.callout, airLean, this.juice.particles);
   }
 
   private reset(): void {
@@ -130,6 +142,8 @@ export class Game {
     this.score = 0;
     this.streak = 0;
     this.gatesCleared = 0;
+    this.nearMisses = 0;
+    this.juice.reset();
     this.newBestAt = null;
     this.callout = null;
     this.time = 0;
@@ -139,6 +153,8 @@ export class Game {
 
   private update(dt: number): void {
     if (this.phase !== 'playing') return;
+    // Hit-stop: the world hangs for a beat after a crash, chaser included, so it costs the rider nothing.
+    if (this.juice.step(dt)) return;
     this.time += dt;
     const prevScore = this.score;
     this.input.update(dt);
@@ -170,6 +186,7 @@ export class Game {
       const half = CONFIG.worldHalfWidth;
       if (this.player.x < -half) this.player.x = -half;
       if (this.player.x > half) this.player.x = half;
+      if (!stumbling) this.juice.carve(dt, this.player.x, this.player.y + CONFIG.playerRadius, tilt.x, this.player.speed);
     }
 
     const prevY = this.player.y;
@@ -208,12 +225,9 @@ export class Game {
     }
 
     // Obstacle collisions → stumble (never instant death). Airborne riders fly over them.
-    if (
-      this.player.invulnTimer <= 0 &&
-      !this.player.jump &&
-      sweptHitsObstacle({ x: prevX, y: prevY }, this.player, CONFIG.playerRadius, this.world.obstacles)
-    ) {
-      this.crash();
+    if (this.player.invulnTimer <= 0 && !this.player.jump) {
+      if (sweptHitsObstacle({ x: prevX, y: prevY }, this.player, CONFIG.playerRadius, this.world.obstacles)) this.crash();
+      else this.checkNearMisses(prevY);
     }
 
     // Compare whole points, as shown in the HUD and recorded on the board.
@@ -249,13 +263,22 @@ export class Game {
     }
   }
 
+  private checkNearMisses(prevY: number): void {
+    for (const ob of this.world.obstacles) {
+      const gap = passGap(prevY, this.player.y, this.player.x, CONFIG.playerRadius, ob);
+      if (gap === null || gap < 0 || gap >= CONFIG.nearMissMarginPx) continue;
+      this.nearMisses += 1;
+      this.callout = this.juice.nearMiss(gap, this.player.speed, this.time) ?? this.callout;
+    }
+  }
+
   private crash(): void {
     this.player.stumbleTimer = CONFIG.stumbleDuration;
     this.player.invulnTimer = CONFIG.invulnDuration;
     this.player.landingCarry = 0;
     this.score = applyStumblePenalty(this.score);
     this.streak = 0;
-    this.renderer.addShake(8);
+    this.juice.crash(this.player.x, this.player.y, this.player.speed);
     this.callout = { kind: 'crash', at: this.time };
   }
 }

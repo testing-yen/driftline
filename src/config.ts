@@ -114,6 +114,30 @@ export function makeConfig(downhillScale: number) {
 
     /** Session best */
     newBestBannerDuration: 1.6, // seconds the mid-run "NEW BEST!" banner stays up
+
+    /** Juice: sound and visuals that react to the rider. None of it changes how a run plays. */
+    // Carve intensity is |lateral lean| × speed / fullLeanSpeed, 0..1: 0 coasting straight, 1 a full-lean carve at full speed.
+    particleCap: 256, // pooled snow particles alive at once; the oldest is recycled past this
+    sprayMinIntensity: 0.08, // carve intensity below this throws no spray, so riding straight stays clean
+    sprayMaxRate: 240, // spray particles/s at carve intensity 1
+    sprayKick: 340, // px/s sideways throw of a spray particle at carve intensity 1, out of the turn
+    spraySizeMin: 2, // px, a particle's size at the lightest carve...
+    spraySizeMax: 7, // ...and at carve intensity 1
+    sprayLifeS: 0.45, // seconds a spray particle lives, fading out
+    sprayCarry: 0.85, // particles leave with this fraction of the rider's downhill speed, so the tail trails behind
+    particleDrag: 5, // 1/s: particles slow toward resting on the snow
+    particleJitter: 0.3, // ± fraction of random spread on each particle's throw, size and life, so the spray reads as snow
+    crashHitStopS: 0.09, // seconds gameplay freezes on a crash; drawing (and the shake) carries on
+    crashShakePx: 6, // px peak screen shake on a crash at full-lean speed; a slower crash shakes less
+    crashShakeS: 0.22, // seconds the crash shake lasts, easing out
+    crashBurstCount: 48, // particles in the crash burst at full-lean speed; a slower crash throws fewer
+    crashBurstKick: 420, // px/s throw of a crash burst particle, every direction
+    nearMissMarginPx: 22, // passing an obstacle with less than this gap between rider and obstacle edges is a near miss
+    nearMissCooldownS: 1.0, // after a near miss's whoosh and callout, further near misses stay silent this long
+    whooshVolume: 0.3, // peak gain of the near-miss whoosh for the closest, fastest pass
+    whooshS: 0.28, // seconds the whoosh lasts
+    whooshLowHz: 500, // the whoosh's band-pass sweeps up from here...
+    whooshHighHz: 2600, // ...toward here for the strongest pass, and back down
   } as const;
 }
 

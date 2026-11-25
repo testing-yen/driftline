@@ -105,6 +105,38 @@ html, body {
   color: #ffd34d;
 }
 
+#ui .juice-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0 4px;
+  font-size: 14px;
+  color: #c9d6e8;
+}
+
+#ui .juice-picker [role='radiogroup'] {
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#ui .juice-picker button {
+  padding: 6px 12px;
+  font: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0;
+  cursor: pointer;
+}
+
+#ui .juice-picker button[aria-checked='true'] {
+  background: rgba(255, 211, 77, 0.22);
+  color: #ffd34d;
+  cursor: default;
+}
+
 #ui .panel h1 {
   margin: 0 0 8px;
   font-size: 34px;

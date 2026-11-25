@@ -1,6 +1,7 @@
 import { CONFIG } from '../config.js';
 import type { Chaser } from './chaser.js';
 import { flipProgress } from './jump.js';
+import type { ParticlePool } from './particles.js';
 import type { EdgeContact, GaugeModel } from './speedGauge.js';
 import {
   bakeFrames,
@@ -95,8 +96,13 @@ const CALLOUTS: Record<JumpCallout['kind'], { text: string; color: string }> = {
   flip: { text: 'FLIP!', color: '#ff922b' },
   trick: { text: `FLIP +${CONFIG.trickScore}`, color: '#ff922b' },
   crash: { text: 'CRASH!', color: '#ff3b3b' },
+  close: { text: 'CLOSE!', color: '#2fc4e8' },
 };
 const CALLOUT_FONT = '900 30px system-ui, sans-serif';
+/** The near-miss callout is a nod, not an event: smaller than the others. */
+const CLOSE_FONT = '900 22px system-ui, sans-serif';
+/** Blue-grey so spray shows against the near-white snow. */
+const SNOW_SPRAY = '#9db5d8';
 /** Gap between the bottom of the rider's skis and the top of the callout, screen px. */
 const CALLOUT_GAP = 14;
 
@@ -125,7 +131,8 @@ export class Renderer {
   private insetLeft = 0;
   private insetRight = 0;
   private insetTop = 0;
-  private shake = 0;
+  /** Peak px and start (performance.now() ms) of the current screen shake; real time, so it runs through hit-stop. */
+  private shake = { px: 0, at: 0 };
   /** Hidden element whose padding resolves the CSS safe-area insets to px. */
   private readonly insetProbe: HTMLDivElement;
   private readonly playerFrames = bakeFrames(PLAYER);
@@ -169,12 +176,13 @@ export class Renderer {
 
   /** Clears effects that would otherwise carry over into the next run. */
   reset(): void {
-    this.shake = 0;
+    this.shake = { px: 0, at: 0 };
     this.lean.reset();
   }
 
-  addShake(amount: number): void {
-    this.shake = Math.min(14, this.shake + amount);
+  /** Shakes the view for crashShakeS, starting at `px` and easing out. */
+  addShake(px: number): void {
+    this.shake = { px, at: performance.now() };
   }
 
   render(
@@ -191,6 +199,7 @@ export class Renderer {
     contact: EdgeContact,
     callout: JumpCallout | null,
     airLean: AirLean | null,
+    particles: ParticlePool,
   ): void {
     const { ctx, w, h } = this;
     const playerScreenY = this.riderScreenY();
@@ -200,10 +209,11 @@ export class Renderer {
 
     let sx = 0;
     let sy = 0;
-    if (this.shake > 0.2) {
-      sx = (Math.random() * 2 - 1) * this.shake;
-      sy = (Math.random() * 2 - 1) * this.shake;
-      this.shake *= 0.88;
+    const shakeT = (performance.now() - this.shake.at) / 1000 / CONFIG.crashShakeS;
+    if (this.shake.px > 0 && shakeT < 1) {
+      const px = this.shake.px * (1 - shakeT) * (1 - shakeT);
+      sx = (Math.random() * 2 - 1) * px;
+      sy = (Math.random() * 2 - 1) * px;
     }
 
     // World is drawn in world px, zoomed out to fit narrow screens.
@@ -232,6 +242,7 @@ export class Renderer {
       if (ob.kind === 'pine') this.drawPine(ox, oy, ob.scale);
       else this.drawRock(ox, oy, ob.scale);
     }
+    this.drawParticles(particles, camY);
 
     if (chaser.active) {
       const cy = chaser.y - camY;
@@ -301,6 +312,20 @@ export class Renderer {
       ctx.lineTo(xx, yy + 46);
       ctx.stroke();
     }
+  }
+
+  /** Snow spray and crash bursts, fading out over each particle's life. */
+  private drawParticles(particles: ParticlePool, camY: number): void {
+    const { ctx, w } = this;
+    ctx.save();
+    ctx.fillStyle = SNOW_SPRAY;
+    for (let i = 0; i < particles.capacity; i += 1) {
+      if (!particles.isAlive(i)) continue;
+      const s = particles.size[i];
+      ctx.globalAlpha = 1 - particles.age[i] / particles.life[i];
+      ctx.fillRect(w / 2 + particles.x[i] - s / 2, particles.y[i] - camY - s / 2, s, s);
+    }
+    ctx.restore();
   }
 
   private drawSpeedStreaks(): void {
@@ -746,11 +771,14 @@ export class Renderer {
     const { text, color } = CALLOUTS[callout.kind];
     const skis = ((PLAYER.height - PLAYER.anchor.y) * devicePxPerSpritePx(this.dpr * this.scale)) / this.dpr;
     ctx.save();
-    ctx.font = CALLOUT_FONT;
+    const close = callout.kind === 'close';
+    ctx.font = close ? CLOSE_FONT : CALLOUT_FONT;
     const half = ctx.measureText(text).width / 2 + 4;
     const x = Math.max(this.insetLeft + half, Math.min(this.screenW - this.insetRight - half, rider.x));
     const y = rider.y + skis + CALLOUT_GAP + 15;
-    const scale = 1 + 0.3 * Math.max(0, 1 - t / 0.12);
+    // The other callouts always pop; "CLOSE!" pops and flashes white only at full effects.
+    const pops = !close || callout.flash === true;
+    const scale = pops ? 1 + 0.3 * Math.max(0, 1 - t / 0.12) : 1;
     ctx.globalAlpha = t > 0.6 ? (1 - t) / 0.4 : 1;
     ctx.translate(x, y);
     ctx.scale(scale, scale);
@@ -760,7 +788,7 @@ export class Renderer {
     ctx.lineWidth = 6;
     ctx.strokeStyle = GAUGE_COLORS.ink;
     ctx.strokeText(text, 0, 0);
-    ctx.fillStyle = color;
+    ctx.fillStyle = close && callout.flash && t < 0.12 ? '#fff' : color;
     ctx.fillText(text, 0, 0);
     ctx.restore();
   }

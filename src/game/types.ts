@@ -66,10 +66,12 @@ export interface AirLean {
   flipping: boolean;
 }
 
-/** A jump moment the renderer calls out next to the rider; `at` is game time in seconds. */
+/** A moment the renderer calls out next to the rider; `at` is game time in seconds. */
 export interface JumpCallout {
-  kind: 'takeoff' | 'flip' | 'trick' | 'crash';
+  kind: 'takeoff' | 'flip' | 'trick' | 'crash' | 'close';
   at: number;
+  /** Pop and flash on arrival; only the near-miss "CLOSE!" sets it, and only at full effects. */
+  flash?: boolean;
 }
 
 export interface PlayerState {
